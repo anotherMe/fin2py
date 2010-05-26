@@ -38,8 +38,7 @@ class MCSimulator:
     def simulate_many(self,
                       absolute_precision=0.1,
                       relative_precision=0.1,
-                      max_iterations=1000,
-                      seed=None):
+                      max_iterations=1000):
         """
         comments
         """
