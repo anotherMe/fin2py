@@ -11,6 +11,7 @@ class OptionPricerSimple(MCSimulator):
 
     def __init__(self,p0,log_returns,days,s,
                  r_free=0.02,option_type=None):
+        MCSimulator.__init__(self)
         self.p0=p0
         self.log_returns=log_returns
         self.days=days
@@ -95,5 +96,4 @@ log_returns=[row.log_return for row in h[-250:]]
 r=OptionPricerSimple(p0=price_today,log_returns=log_returns,days=30,s=550)
 r.option_type=r.european_call
 #r.option_type=r.european_put
-mu,dmu=r.simulate_many()
-print mu, dmu
+print r.simulate_many()
