@@ -81,6 +81,43 @@ def bootstrap(x,prob=68,nsamples=100):
     left_prob=int(((100.0-prob)/200)*nsamples)
     return means[left_prob], mu, means[nsamples-1-left_prob]
 
+def confidence_intervals(mu,sigma):
+    """Return the set of confidence intervals, given an average and sigma
+
+    Parameters:
+        mu: Average of a gaussian distribution
+        sigma: Square root of the variance of the distribution
+    Examples:
+    >>> confidence_intervals(10,1)
+    0.68% between 9.0 and 11.0
+    0.8% between 8.71844843446 and 11.2815515655
+    0.9% between 8.35514637305 and 11.644853627
+    0.95% between 8.04003601546 and 11.9599639845
+    0.98% between 7.67365212596 and 12.326347874
+    0.99% between 7.42417069645 and 12.5758293035
+    0.995% between 7.19296623166 and 12.8070337683
+    0.998% between 6.90976769383 and 13.0902323062
+    0.999% between 6.70947326851 and 13.2905267315
+    0.9999% between 6.10940811359 and 13.8905918864
+    0.99999% between 5.58282658653 and 14.4171734135
+
+    """
+    CONFIDENCE=[
+        (0.68,1.0),
+        (0.80,1.281551565545),
+        (0.90,1.644853626951),
+        (0.95,1.959963984540),
+        (0.98,2.326347874041),
+        (0.99,2.575829303549),
+        (0.995,2.807033768344),
+        (0.998,3.090232306168),
+        (0.999,3.290526731492),
+        (0.9999,3.890591886413),
+        (0.99999,4.417173413469)
+        ]
+    for (a,b) in CONFIDENCE:
+        print '%s%% between %s and %s' % (a,mu-b*sigma,mu+b*sigma)
+
 class MCSimulator:
 
     """Monte Carlo Simulator parent class.
@@ -162,6 +199,7 @@ class MCSimulator:
             #bootstrap the results to get a non-gaussian
             #    average and standard error
         return bootstrap(self.results)
+        """ Do we also need to return the confidence intervals? """
 
     def limits(self,confidence=0.90):
         """Return the left and right limits.
