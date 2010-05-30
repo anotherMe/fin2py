@@ -1,8 +1,9 @@
 from yahoo import *
-from math import *
-import sys
-import random
+#from math import *
+#import sys
+#import random
 from mc import *
+from stats import *
 # time is days
 
 def npv(amount,days,annual_risk_free_rate=0.05,days_in_year=250,probability=1.0):
@@ -130,6 +131,15 @@ class Market(MCSimulator):
         # return total portfolio value
         return sum(self.data[name]['shares']*S[name] for name in self.data)
 
+    def value_at_risk(self):
+       mu = mean(self.results)
+       sigma = stddev(self.results)
+       confidence_intervals(mu,sigma)
+       var_gaussian = mu - 1.65 * sigma
+       n=len(self.results)
+       var_nongaussian=self.results[int(n*5/100)]
+       print var_gaussian, var_nongaussian
+       return   self.limits(confidence=0.95)[0]
 
 class OpRiskModel(MCSimulator):
 
@@ -193,7 +203,9 @@ print lower,mu,upper
 #Market Portfolio
 days = 25
 positions={'XOM':7,'AAPL':1}
-lower, mu, upper = Market(days,positions).simulate_many()
+M=Market(days,positions)
+lower, mu, upper = M.simulate_many()
+print M.value_at_risk()
 print lower,mu,upper
 
 #Operation Risk Model
