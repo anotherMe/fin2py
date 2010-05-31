@@ -6,7 +6,7 @@ import time
 ############### Exception Class ###############
 
 class Matherror(Exception):
-    '''User-defined Matherror exception class.'''
+    """User-defined Matherror exception class."""
     def __init__(self,names=None,values=None):
         Exception.__init__(self)
         self.names=names
@@ -19,7 +19,7 @@ class Matherror(Exception):
 ############### Statistics ###############
 
 def mean(series):
-    '''Return the arithmetic mean of the series.
+    """Return the arithmetic mean of the series.
 
     Parameters
     ----------
@@ -34,7 +34,7 @@ def mean(series):
     --------
     >>> x=[1,2,3,4]
     >>> mean(x)
-    2.5''' 
+    2.5""" 
     try:
         if not isinstance(series,(list,tuple)):
             series=(series,)
@@ -45,7 +45,7 @@ def mean(series):
         print('mean() '+m.estr%m.__str__())
     
 def variance(series):
-    '''return the variance of the series.
+    """return the variance of the series.
 
     Parameters
     ----------
@@ -64,7 +64,7 @@ def variance(series):
     --------
     >>> x=[1,2,3,4]
     >>> variance(x)
-    1.25'''
+    1.25"""
     try:
         if not isinstance(series,(list,tuple)):
             series=(series,)
@@ -74,7 +74,7 @@ def variance(series):
         print('variance() '+m.estr%m.__str__())
 
 def stddev(series):
-    '''return the standard deviation of the series.
+    """return the standard deviation of the series.
 
     Parameters
     ----------
@@ -93,13 +93,13 @@ def stddev(series):
     --------
     >>> x=[1,2,3,4]
     >>> stddev(x)
-    1.1180339887498949'''
+    1.1180339887498949"""
     try:
         return sqrt(variance(series))
     except: pass
 
 def covariance(series_x, series_y):
-    '''return the covariance of the two series.
+    """return the covariance of the two series.
 
     Parameters
     ----------
@@ -125,7 +125,7 @@ def covariance(series_x, series_y):
     >>> x=[2,3,5,7]
     >>> y=[1,6,8,4]
     >>> covariance(x,y)
-    1.8125'''
+    1.8125"""
     try:
         if not isinstance(series_x,(list,tuple)):
             series_x=(series_x,)
@@ -142,7 +142,7 @@ def covariance(series_x, series_y):
 
 
 def correlation(series_x, series_y):
-    '''return the correlation of the two series.
+    """return the correlation of the two series.
 
     Parameters
     ----------
@@ -169,7 +169,7 @@ def correlation(series_x, series_y):
     >>> x=[2,3,5,7]
     >>> y=[1,6,8,4]
     >>> correlation(x,y)
-    0.36498927507141227'''
+    0.36498927507141227"""
     try:
         if not isinstance(series_x,(list,tuple)):
             series_x=(series_x,)
@@ -188,7 +188,7 @@ def correlation(series_x, series_y):
         print('correlation() '+m.estr%m.__str__()) 
 
 def binn(series,n):
-    '''Return the numbers of counts in each bin.
+    """Return the numbers of counts in each bin.
 
     Parameters
     ----------
@@ -207,7 +207,7 @@ def binn(series,n):
     --------
     >>> x=[1,2.34,3,3,4.173,5,6.5,78,9,78,78,78]
     >>> binn(x,3)
-    [8, 0, 4]'''
+    [8, 0, 4]"""
     try:
         if not isinstance(series,(list,tuple)):
             series=(series,)
@@ -273,7 +273,7 @@ def prettylist(series):
 ############### Linear Algebra ###############
 
 def matrix(rows=0,cols=0):
-    '''Constuctor a all zero matrix.
+    """Constuctor a all zero matrix.
 
     Parameters
     ----------
@@ -286,13 +286,13 @@ def matrix(rows=0,cols=0):
         
     Returns
     -------
-    Matrix : list
+    matrix : list
         Rows by cols matrix in list.
  
     Examples
     --------
-    >>> Matrix(3,4)
-    [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]'''
+    >>> matrix(3,4)
+    [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]"""
     try:
         assert rows>=0 and cols>=0
         return [[0]*int(cols) for k in range(int(rows))]
@@ -301,7 +301,7 @@ def matrix(rows=0,cols=0):
         print('matrix() '+m.estr%m.__str__())
 
 def pprint(A):
-    '''Print the matrix with four significant digits.
+    """Print the matrix with four significant digits.
 
     Parameters
     ----------
@@ -315,7 +315,7 @@ def pprint(A):
      [
       [ 3.235e+00, 2.000e+00, 4.550e+00, ],
       [ 1.457e+01, 1.123e+00, 2.300e+01, ],
-     ]'''
+     ]"""
     try:
         print ' ['
         for line in A:
@@ -332,7 +332,7 @@ def pprint(A):
         print('pprint() '+m.estr%m.__str__())        
     
 def rows(A):
-    '''Get the number of rows in the matrix.
+    """Get the number of rows in the matrix.
 
     Parameters
     ----------
@@ -348,7 +348,7 @@ def rows(A):
     --------
     >>> x=matrix(3,5)
     >>> rows(x)
-    3'''
+    3"""
     try:
         return len(A)
     except:
@@ -356,7 +356,7 @@ def rows(A):
         print('rows() '+m.estr%m.__str__())           
 
 def cols(A):
-    '''Get the number of columns in the matrix.
+    """Get the number of columns in the matrix.
 
     Parameters
     ----------
@@ -372,7 +372,7 @@ def cols(A):
     --------
     >>> x=matrix(3,5)
     >>> cols(x)
-    5'''
+    5"""
     try:
         return len(A[0])
     except:
@@ -380,7 +380,7 @@ def cols(A):
         print('cols() '+m.estr%m.__str__())  
         
 def add(A,B):
-    """multiplies a number of Matrix A by a Matrix B"""
+    """multiplies a number of matrix A by a matrix B"""
     if type(A)==type(1) or type(A)==type(1.0):
         C=deepcopy(B)
         for i in range(rows(B)):            
@@ -398,7 +398,7 @@ def add(A,B):
     pass
 
 def sub(A,B):
-    """multiplies a number of Matrix A by a Matrix B"""
+    """multiplies a number of matrix A by a matrix B"""
     C=deepcopy(A)
     for i in range(rows(A)):            
         for j in range(cols(A)):            
@@ -409,9 +409,9 @@ def sub(A,B):
 
 
 def multiply(A,B):
-    """multiplies a number of Matrix A by a Matrix B"""
+    """multiplies a number of matrix A by a matrix B"""
     if type(A)==type(1) or type(A)==type(1.0):
-        C=Matrix(rows(B),cols(B))        
+        C=matrix(rows(B),cols(B))        
         for i in range(rows(B)):
             for j in range(cols(B)):
                 C[i][j]=A*B[i][j]
@@ -419,7 +419,7 @@ def multiply(A,B):
             pass
         return C
     else:
-        C=Matrix(rows(A),cols(B))        
+        C=matrix(rows(A),cols(B))        
         for i in range(rows(A)):
             for j in range(cols(B)):
                 for k in range(cols(A)):
@@ -434,7 +434,7 @@ def inverse(A,checkpoint=None):
     """Computes the inverse of A using Gauss-Jordan emilimination"""
     A=deepcopy(A)
     n=rows(A)
-    B=Matrix(n,n)
+    B=matrix(n,n)
     for i in range(n): B[i][i]=1
     for c in range(n):
         if checkpoint: checkpoint('pivoting (%i) ...' % c)
@@ -470,7 +470,7 @@ def test_inverse():
 
 def transpose(A):
     """Transposed of A"""
-    B=Matrix(cols(A),rows(A))
+    B=matrix(cols(A),rows(A))
     for i in range(rows(B)):
         for j in range(cols(B)):
             B[i][j]=A[j][i]
@@ -513,13 +513,13 @@ def test_Cholesky():
     return
 
 def identity(n):
-    A=Matrix(n,n)
+    A=matrix(n,n)
     for i in range(n): A[i][i]=1
     return A
 
 def diagonal(v):
     n=len(v)
-    A=Matrix(n,n)
+    A=matrix(n,n)
     for i in range(n): A[i][i]=v[i]
     return A
 
@@ -540,7 +540,7 @@ def Jacobi(A,checkpoint=False):
     t0=time.time()
     n=rows(A)
     if n!=cols(A): raise SyntaxError
-    S=Matrix(n,n)
+    S=matrix(n,n)
     for i in range(n):
         for j in range(n):
             S[i][j]=float(A[i][j])
@@ -604,7 +604,7 @@ def Jacobi(A,checkpoint=False):
             pass
         pass
     # NORMALIZE VECTORS
-    U=Matrix(n,n)
+    U=matrix(n,n)
     for i in range(n):
         sum=0.0
         for j in range(n): sum+=E[i][j]**2;            
@@ -617,7 +617,7 @@ def test_Jacobi():
     """Test the Jacobi algorithm"""
     print "Testing Jacobi on random matrices..."
     n=4
-    A=Matrix(n,n)
+    A=matrix(n,n)
     for k in range(3):
         for i in range(n):
             for j in range(i,n):
@@ -644,8 +644,8 @@ def fitting_function(f,C,x):
 
 def fit(f,x,y,dy=None):
     """Linear fit of y[i]+/idy[i] using sum_j f[j](x[i])"""
-    A=Matrix(len(x),len(f))
-    B=Matrix(len(y),1)
+    A=matrix(len(x),len(f))
+    B=matrix(len(y),1)
     for i in range(rows(A)):
         w=1.0
         if dy: w=1.0/sqrt(dy[i])
@@ -734,7 +734,7 @@ def truncate_eigenvalues(A,delta=0.01,checkpoint=None):
 def cov2cor(cov):
     n=rows(cov)
     sigma=[0]*n
-    cor=Matrix(n,n)
+    cor=matrix(n,n)
     for i in range(n):
         sigma[i]=sqrt(cov[i][i])
         for j in range(0,i+1):
@@ -745,7 +745,7 @@ def cov2cor(cov):
 
 def cor2cov(cor,sigma):
     n=rows(cor)
-    cov=Matrix(n,n)    
+    cov=matrix(n,n)    
     for i in range(n):
         for j in range(0,i+1):
             cov[i][j]=cov[j][i]=cor[i][j]*sigma[i]*sigma[j]
@@ -783,7 +783,7 @@ def truncate_eigenvalues_cov(cov,delta=0.01,checkpoint=None):
 def test_truncate_eigenvalues_cov():
     print "Testing truncate_eigenvalues_cov"
     n=5
-    A=Matrix(n,n)    
+    A=matrix(n,n)    
     for i in range(n):
         A[i][i]=abs(gauss(10,10))
         for j in range(i+1,n):
