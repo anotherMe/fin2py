@@ -34,7 +34,9 @@ def mean(series):
     --------
     >>> x=[1,2,3,4]
     >>> mean(x)
-    2.5""" 
+    2.5
+
+    """ 
     try:
         if not isinstance(series,(list,tuple)):
             series=(series,)
@@ -64,7 +66,9 @@ def variance(series):
     --------
     >>> x=[1,2,3,4]
     >>> variance(x)
-    1.25"""
+    1.25
+
+    """
     try:
         if not isinstance(series,(list,tuple)):
             series=(series,)
@@ -93,7 +97,9 @@ def stddev(series):
     --------
     >>> x=[1,2,3,4]
     >>> stddev(x)
-    1.1180339887498949"""
+    1.1180339887498949
+
+    """
     try:
         return sqrt(variance(series))
     except: pass
@@ -125,7 +131,9 @@ def covariance(series_x, series_y):
     >>> x=[2,3,5,7]
     >>> y=[1,6,8,4]
     >>> covariance(x,y)
-    1.8125"""
+    1.8125
+
+    """
     try:
         if not isinstance(series_x,(list,tuple)):
             series_x=(series_x,)
@@ -169,7 +177,9 @@ def correlation(series_x, series_y):
     >>> x=[2,3,5,7]
     >>> y=[1,6,8,4]
     >>> correlation(x,y)
-    0.36498927507141227"""
+    0.36498927507141227
+
+    """
     try:
         if not isinstance(series_x,(list,tuple)):
             series_x=(series_x,)
@@ -207,7 +217,9 @@ def binn(series,n):
     --------
     >>> x=[1,2.34,3,3,4.173,5,6.5,78,9,78,78,78]
     >>> binn(x,3)
-    [8, 0, 4]"""
+    [8, 0, 4]
+
+    """
     try:
         if not isinstance(series,(list,tuple)):
             series=(series,)
@@ -263,7 +275,9 @@ def prettylist(series):
     --------
     >>> x=[1,2.3,4.5513131,sin(2),2**12]
     >>> prettylist(x)
-    '1.000,2.300,4.551,0.909,4096.000' """
+    '1.000,2.300,4.551,0.909,4096.000'
+
+    """
     try:
         return ','.join(['%.3f' % x for x in series])
     except:
@@ -292,7 +306,9 @@ def matrix(rows=0,cols=0):
     Examples
     --------
     >>> matrix(3,4)
-    [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]"""
+    [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+
+    """
     try:
         assert rows>=0 and cols>=0
         return [[0]*int(cols) for k in range(int(rows))]
@@ -315,7 +331,9 @@ def pprint(A):
      [
       [ 3.235e+00, 2.000e+00, 4.550e+00, ],
       [ 1.457e+01, 1.123e+00, 2.300e+01, ],
-     ]"""
+     ]
+
+    """
     try:
         print ' ['
         for line in A:
@@ -348,7 +366,9 @@ def rows(A):
     --------
     >>> x=matrix(3,5)
     >>> rows(x)
-    3"""
+    3
+
+    """
     try:
         return len(A)
     except:
@@ -372,7 +392,9 @@ def cols(A):
     --------
     >>> x=matrix(3,5)
     >>> cols(x)
-    5"""
+    5
+
+    """
     try:
         return len(A[0])
     except:
@@ -536,6 +558,7 @@ def Jacobi(A,checkpoint=False):
        the eigenvalue e[i] of A.
 
        from http://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm
+
     """
     t0=time.time()
     n=rows(A)
@@ -802,7 +825,9 @@ def test_truncate_eigenvalues_cov():
 def CorrelationMatrix(table,do_AR1fiter=True):    
     """Takes a table of the form [[(date,return),...],[(date,return),...],...]
        and filters each time series (AR1fiter). computes covariance matrix,
-       and removes negative eigenvalues"""    
+       and removes negative eigenvalues
+
+    """    
     n=len(table)
     mean=[0]*n
     for series in table:
