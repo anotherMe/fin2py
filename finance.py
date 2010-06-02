@@ -1,10 +1,7 @@
 from yahoo import *
-#from math import *
-#import sys
-#import random
 from mc import *
-from stats import *
-# time is days
+from numeric import *
+import random
 
 def npv(amount,days,annual_risk_free_rate=0.05,days_in_year=250,probability=1.0):
        """
