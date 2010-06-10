@@ -18,6 +18,7 @@
 """
 
 from math import sqrt
+from yahoo import Storage
 import random
 
 #Remove this function when we integrate with rest of code
@@ -128,7 +129,7 @@ class MCSimulator:
 
     """
 
-    def __init__(self,params=None):
+    def __init__(self,params=Storage()):
         """Set initial member variables.
 
         Parameter:
@@ -196,6 +197,7 @@ class MCSimulator:
             i=i+1			
             if i>=max_iterations:
                 break
+        confidence_intervals(mu,sigma)
             #bootstrap the results to get a non-gaussian
             #    average and standard error
         return bootstrap(self.results)

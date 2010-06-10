@@ -3,20 +3,18 @@ from copy import copy, deepcopy
 from random import *
 import time
 
-############### Exception Class ###############
+################# Exception Class #################
 
 class Matherror(Exception):
     """User-defined Matherror exception class."""
-    def __init__(self,names=None,values=None):
+    def __init__(self,message):
         Exception.__init__(self)
-        self.names=names
-        self.values=values
-        self.estr='matherror exception raised: %s\n%s'
+        self.message=message
 
     def __str__(self):
-        return repr(self.names), repr(self.values)
+        return 'Matherro:'+self.message
 
-############### Statistics ###############
+############### Statistical Methods ###############
 
 def mean(series):
     """Return the arithmetic mean of the series.
@@ -35,16 +33,13 @@ def mean(series):
     >>> x=[1,2,3,4]
     >>> mean(x)
     2.5
+    >>> mean(3)
+    3.0
 
     """ 
-    try:
-        if not isinstance(series,(list,tuple)):
-            series=(series,)
-        assert len(series)!=0
-        return float(sum(series))/len(series)
-    except:
-        m=Matherror('series',series)
-        print('mean() '+m.estr%m.__str__())
+    if not isinstance(series,(list,tuple)):
+        series=(series,)
+    return float(sum(series))/len(series)
     
 def variance(series):
     """return the variance of the series.
@@ -67,15 +62,12 @@ def variance(series):
     >>> x=[1,2,3,4]
     >>> variance(x)
     1.25
-
+    >>> variance(3)
+    0.0
     """
-    try:
-        if not isinstance(series,(list,tuple)):
-            series=(series,)
-        return mean([x**2 for x in series])-mean(series)**2
-    except:
-        m=Matherror('series',series)
-        print('variance() '+m.estr%m.__str__())
+    if not isinstance(series,(list,tuple)):
+        series=(series,)
+    return mean([x**2 for x in series])-mean(series)**2
 
 def stddev(series):
     """return the standard deviation of the series.
@@ -100,9 +92,7 @@ def stddev(series):
     1.1180339887498949
 
     """
-    try:
-        return sqrt(variance(series))
-    except: pass
+    return sqrt(variance(series))
 
 def covariance(series_x, series_y):
     """return the covariance of the two series.
@@ -120,7 +110,7 @@ def covariance(series_x, series_y):
 
     Note
     ----
-    The lengths of the two series must be same.
+    The lengths of the two series must be the same.
   
     See Also
     --------
@@ -134,20 +124,13 @@ def covariance(series_x, series_y):
     1.8125
 
     """
-    try:
-        if not isinstance(series_x,(list,tuple)):
-            series_x=(series_x,)
-        if not isinstance(series_y,(list,tuple)):
-            series_y=(series_y,)
-        assert len(series_x)!=0 \
-               and len(series_y)!=0 \
-               and len(series_x)==len(series_y)
-        return mean([series_x[i]*series_y[i] for i in range(len(series_x))])- \
-                    mean(series_x)*mean(series_y)
-    except:
-        m=Matherror(('series_x','series_y'),(series_x,series_y))
-        print('covariance() '+m.estr%m.__str__())        
-
+    if not isinstance(series_x,(list,tuple)):
+        series_x=(series_x,)
+    if not isinstance(series_y,(list,tuple)):
+        series_y=(series_y,)
+    equal_lengths = len(series_x)==len(series_y)    
+    return mean([series_x[i]*series_y[i] for i in range(len(series_x))])- \
+        mean(series_x)*mean(series_y)
 
 def correlation(series_x, series_y):
     """return the correlation of the two series.
@@ -180,24 +163,15 @@ def correlation(series_x, series_y):
     0.36498927507141227
 
     """
-    try:
-        if not isinstance(series_x,(list,tuple)):
-            series_x=(series_x,)
-        if not isinstance(series_y,(list,tuple)):
-            series_y=(series_y,)        
-        assert len(series_x)!=0 \
-               and len(series_y)!=0 \
-               and len(series_x)==len(series_y)
-        if stddev(series_x)==0 or stddev(series_y)==0:
-            raise Matherror(('stddev(series_x)','stddev(series_y)'),(stddev(series_x),stddev(series_y)))
-        return covariance(series_x,series_y)/(stddev(series_x)*stddev(series_y))
-    except Matherror, m:
-        print('correlation() '+m.estr%m.__str__())
-    except:
-        m=Matherror(('series_x','series_y'),(series_x,series_y))
-        print('correlation() '+m.estr%m.__str__()) 
+    stdx=stddev(series_x)
+    stdy=stddev(series_y)
+    zero_stdxy = stdx==0 or stdy==0
+    if zero_stdxy:
+        raise Matherror('zero standard deviation')
+    return covariance(series_x,series_y)/(stddev(series_x)*stddev(series_y))
 
-def binn(series,n):
+
+def bin(series,n):
     """Return the numbers of counts in each bin.
 
     Parameters
@@ -206,42 +180,58 @@ def binn(series,n):
         1-dimensional number list.
     n : int
         Number(positive) of bins on the series, the interval woulb be equal.
-        If n is not a int, a conversion is attempted.
+        If n is not a integer, a conversion is attempted.
 
     Returns
     -------
-    binit : list
+    bins : list
         Return the numbers of counts in each bin.
+    minimum : float
+        The minimum of the series.
+    maximum : float
+        The maximum of the series.
+    interval : float
+        The interval of slices.
         
     Examples
     --------
-    >>> x=[1,2.34,3,3,4.173,5,6.5,78,9,78,78,78]
-    >>> binn(x,3)
-    [8, 0, 4]
+    >>> bin([1,2,551,11,41,414,1224,1123,441,234],4)
+    ([5, 3, 0, 2], 1.0, 1224.0, 305.75)
 
     """
-    try:
-        if not isinstance(series,(list,tuple)):
-            series=(series,)
-        n=int(n)
-        assert n>0 and len(series)!=0
-        minim=float(min(series))
-        maxim=float(max(series))
-        interval=(maxim-minim)/n
-        bins=[0]*n
-        for x in series:
-            if x!=maxim:
-                bins[int((x-minim)/interval)]+=1
-            else:
-                bins[-1]+=1
-        return bins
-    except:
-        m=Matherror(('series','n'),(series,n))
-        print('binn() '+m.estr%m.__str__())
+    if not isinstance(series,(list,tuple)):
+        series=(series,)
+    n=int(n)
+    if n<=0 or len(series)==0:
+        raise Matherror('no data')
+    minim=float(min(series))
+    maxim=float(max(series))
+    interval=(maxim-minim)/n
+    bins=[0]*n
+    for x in series:
+        if x!=maxim:
+            bins[int((x-minim)/interval)]+=1
+        else:
+            bins[-1]+=1
+    return bins,minim,maxim,interval
+
         
 def E(f, series):
-    """
-    examples:
+    """Return the expectation of the series given the function.
+
+    Parameters
+    ----------
+    f : function
+        The underlying function of the expectation.
+    series : list/tuple
+        The list/tuple to calculate the expectation.
+
+    Return
+    ------
+    expectation : float
+    
+    Examples:
+    ---------
     >>> print E(lambda X:X, [1,2,3,4,5])
     3.0
     >>> print E(lambda X:X, [[1],[2],[3],[4],[5]])
@@ -250,12 +240,9 @@ def E(f, series):
     13.2
 
     """
-    try:
-        def to_tuple(x): return x if isinstance(x,(list,tuple)) else (x,)
-        return float(sum(f(*to_tuple(a)) for a in series))/len(series)
-    except:
-        m=Matherror(('f','series'),(f,series))
-        print('E() '+m.estr%m.__str__())
+    def to_tuple(x): return x if isinstance(x,(list,tuple)) else (x,)
+    return float(sum(f(*to_tuple(a)) for a in series))/len(series)
+    
         
 ############### Miscellaneous ###############
 
@@ -278,11 +265,8 @@ def prettylist(series):
     '1.000,2.300,4.551,0.909,4096.000'
 
     """
-    try:
-        return ','.join(['%.3f' % x for x in series])
-    except:
-        m=Matherror('series',series)
-        print('prettylist() '+m.estr%m.__str__())
+    return ','.join(['%.3f' % x for x in series])
+    
         
 ############### Linear Algebra ###############
 
@@ -309,12 +293,8 @@ def matrix(rows=0,cols=0):
     [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
 
     """
-    try:
-        assert rows>=0 and cols>=0
-        return [[0]*int(cols) for k in range(int(rows))]
-    except:
-        m=Matherror(('rows','cols'),(rows,cols))
-        print('matrix() '+m.estr%m.__str__())
+    return [[0]*int(cols) for k in range(int(rows))]
+
 
 def pprint(A):
     """Print the matrix with four significant digits.
@@ -334,20 +314,17 @@ def pprint(A):
      ]
 
     """
-    try:
-        print ' ['
-        for line in A:
-            print '  [',
-            for item in line:
-                print '%.3e,' % float(item),
-                pass
-            print '],'
+    print ' ['
+    for line in A:
+        print '  [',
+        for item in line:
+            print '%.3e,' % float(item),
             pass
-        print ' ]'
-        return
-    except:
-        m=Matherror('matrix',A)
-        print('pprint() '+m.estr%m.__str__())        
+        print '],'
+        pass
+    print ' ]'
+    return
+     
     
 def rows(A):
     """Get the number of rows in the matrix.
@@ -369,11 +346,8 @@ def rows(A):
     3
 
     """
-    try:
-        return len(A)
-    except:
-        m=Matherror('matrix',A)
-        print('rows() '+m.estr%m.__str__())           
+    return len(A)
+         
 
 def cols(A):
     """Get the number of columns in the matrix.
@@ -395,11 +369,7 @@ def cols(A):
     5
 
     """
-    try:
-        return len(A[0])
-    except:
-        m=Matherror('matrix',A)
-        print('cols() '+m.estr%m.__str__())  
+    return len(A[0])
         
 def add(A,B):
     """multiplies a number of matrix A by a matrix B"""
@@ -501,10 +471,10 @@ def transpose(A):
     return B
 
 def Cholesky(A):
-    if A!=transpose(A): raise SyntaxError
+    if A!=transpose(A): raise Matherror("not symmetric")
     L=deepcopy(A)
     for k in range(cols(L)):
-        if L[k][k]<=0: raise SyntaxError
+        if L[k][k]<=0: raise Matherror("not positive definitive")
         p=L[k][k]=sqrt(L[k][k])
         for i in range(k+1,rows(L)):        
             L[i][k]/=p
@@ -562,7 +532,7 @@ def Jacobi(A,checkpoint=False):
     """
     t0=time.time()
     n=rows(A)
-    if n!=cols(A): raise SyntaxError
+    if n!=cols(A): raise Matherror("matrix not squared")
     S=matrix(n,n)
     for i in range(n):
         for j in range(n):
@@ -601,7 +571,7 @@ def Jacobi(A,checkpoint=False):
         e[h]=y+t
         if changed[h] and y==e[h]: changed[h],state=False,state-1
         elif (not changed[h]) and y!=e[h]: changed[h],state=True,state+1
-
+        
         for i in range(k):
             S[i][k],S[i][h]=c*S[i][k]-s*S[i][h],s*S[i][k]+c*S[i][h]
             pass
@@ -635,6 +605,7 @@ def Jacobi(A,checkpoint=False):
         for j in range(n): U[j][i]=E[i][j]/sum
         pass
     return U,e    
+    
 
 def test_Jacobi():
     """Test the Jacobi algorithm"""
@@ -924,4 +895,3 @@ def test_all():
     test_truncate_eigenvalues_cov()
 
 if __name__=='__main__': test_all()
-
