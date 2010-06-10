@@ -157,13 +157,10 @@ def mean(series,name='log_return'):
         mean : float
  
     Examples:
+    >>> stock1=Stock('GOOG')
     >>> hist1=stock1.historical()
-    >>> hist2=stock2.historical()
-    >>> mean(hist1)
-    0.0010783976891265952
-    >>> mean(hist2)
-    0.00067096659560620579
-
+    >>> mean(hist1)>0
+    True
     """ 
     return sum(x[name] for x in series)/len(series)
 
@@ -178,9 +175,10 @@ def variance(series,name='log_return'):
         variance : float
         
     Examples:
+    >>> stock1=Stock('GOOG')
     >>> hist1=stock1.historical()
-    >>> variance(hist1)
-    0.00055064457795373639
+    >>> variance(hist1)>0
+    True
  
     """
     return sum(x[name]**2 for x in series)/len(series)-mean(series,name)**2
@@ -196,9 +194,10 @@ def stddev(series,name='log_return'):
         stddev : float
   
     Examples:
+    >>> stock1=Stock('GOOG')
     >>> hist1=stock1.historical()
-    >>> stddev(hist1)
-    0.023465817223223578
+    >>> stddev(hist1)>0
+    True
 
     """
     return math.sqrt(variance(series,name))
@@ -216,10 +215,11 @@ def covariance(series_a, series_b,name_a='log_return',name_b=None):
         covariance : float
 
     Examples:
+    >>> stock1=Stock('GOOG')
     >>> hist1=stock1.historical()
-    >>> hist2=stock2.historical()
-    >>> covariance(hist1,hist2)
-    0.00025376586628222822
+    >>> hist2=stock1.historical()
+    >>> covariance(hist1,hist2)>0
+    True
 
     """
     name_b=name_b or name_a
@@ -228,8 +228,10 @@ def covariance(series_a, series_b,name_a='log_return',name_b=None):
     i,j=0,0
     s,c=0.0,1
     while i<len(series_b) and j<len(series_b):
-        if series_a[i].date<series_b[j].date: i+=1
-        elif series_a[i].date>series_b[j].date: j+=1
+        if series_a[i].date<series_b[j].date:
+            i+=1
+        elif series_a[i].date>series_b[j].date:
+            j+=1
         else:
             s+=series_a[i][name_a]*series_b[j][name_b]
             c+=1
@@ -250,10 +252,11 @@ def correlation(series_a, series_b,name_a='log_return',name_b=None):
         correlation : float
 
     Examples:
+    >>> stock1=Stock('GOOG')
     >>> hist1=stock1.historical()
-    >>> hist2=stock2.historical()
-    >>> correlation(hist1,hist2)
-    0.25926227436730481
+    >>> hist2=stock1.historical()
+    >>> correlation(hist1,hist2)>0.999
+    True
 
     """
     name_b=name_b or name_a
@@ -421,5 +424,7 @@ def testStock():
     print 'covariance=',covariance(h,h2)
     print 'correlation=',correlation(h,h2)
 
-if __name__=='__main__':
+if __name__ == '__main__':
+    import doctest
     testStock()
+    doctest.testmod()

@@ -12,7 +12,7 @@ class Matherror(Exception):
         self.message=message
 
     def __str__(self):
-        return 'Matherro:'+self.message
+        return 'Matherror:'+self.message
 
 ############### Statistical Methods ###############
 
@@ -33,12 +33,8 @@ def mean(series):
     >>> x=[1,2,3,4]
     >>> mean(x)
     2.5
-    >>> mean(3)
-    3.0
 
     """ 
-    if not isinstance(series,(list,tuple)):
-        series=(series,)
     return float(sum(series))/len(series)
     
 def variance(series):
@@ -62,11 +58,7 @@ def variance(series):
     >>> x=[1,2,3,4]
     >>> variance(x)
     1.25
-    >>> variance(3)
-    0.0
     """
-    if not isinstance(series,(list,tuple)):
-        series=(series,)
     return mean([x**2 for x in series])-mean(series)**2
 
 def stddev(series):
@@ -124,13 +116,9 @@ def covariance(series_x, series_y):
     1.8125
 
     """
-    if not isinstance(series_x,(list,tuple)):
-        series_x=(series_x,)
-    if not isinstance(series_y,(list,tuple)):
-        series_y=(series_y,)
-    equal_lengths = len(series_x)==len(series_y)    
-    return mean([series_x[i]*series_y[i] for i in range(len(series_x))])- \
-        mean(series_x)*mean(series_y)
+    if len(series_x)!=len(series_y):
+        raise Matherror("serieses have different size")
+    return mean([x*series_y[i] for i,x in enumerate(series_x)])-mean(series_x)*mean(series_y)
 
 def correlation(series_x, series_y):
     """return the correlation of the two series.
@@ -165,8 +153,7 @@ def correlation(series_x, series_y):
     """
     stdx=stddev(series_x)
     stdy=stddev(series_y)
-    zero_stdxy = stdx==0 or stdy==0
-    if zero_stdxy:
+    if stdx==0 or stdy==0:
         raise Matherror('zero standard deviation')
     return covariance(series_x,series_y)/(stddev(series_x)*stddev(series_y))
 
@@ -199,8 +186,6 @@ def bin(series,n):
     ([5, 3, 0, 2], 1.0, 1224.0, 305.75)
 
     """
-    if not isinstance(series,(list,tuple)):
-        series=(series,)
     n=int(n)
     if n<=0 or len(series)==0:
         raise Matherror('no data')
@@ -240,7 +225,8 @@ def E(f, series):
     13.2
 
     """
-    def to_tuple(x): return x if isinstance(x,(list,tuple)) else (x,)
+    def to_tuple(x):
+        return x if isinstance(x,(list,tuple)) else (x,)
     return float(sum(f(*to_tuple(a)) for a in series))/len(series)
     
         
@@ -894,4 +880,8 @@ def test_all():
     test_Jacobi()
     test_truncate_eigenvalues_cov()
 
-if __name__=='__main__': test_all()
+if __name__ == '__main__':
+    import doctest
+    test_all()
+    doctest.testmod()
+

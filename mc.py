@@ -21,9 +21,11 @@ from math import sqrt
 from yahoo import Storage
 import random
 
+__all__=['bootstrap','confidence_intervals','MCSimulator']
+
 #Remove this function when we integrate with rest of code
 def mean(sample):
-    return sum(sample)/len(sample)
+    return float(sum(sample))/len(sample)
 
 def get_sample(x,size):
     """Get a sample from the input list.
@@ -35,15 +37,10 @@ def get_sample(x,size):
         size: Number of elements in the resulting sample
     Examples:
     >>> x=[1,2,3,4,5,6,7]
-    >>> print get_sample(x,7)
-    [3, 7, 5, 3, 5, 7, 4]
-    >>> print get_sample(x,7)
-    [1, 1, 5, 7, 7, 2, 3]
-    >>> print get_sample(x,5)
-    [7, 1, 4, 4, 1]
-    >>> print get_sample(x,3)
-    [7, 6, 4]
-    
+    >>> print len(get_sample(x,7))
+    7
+    >>> print [i for i in get_sample(x,7) if not i in x]
+    []
     """
     sample=[]
     for i in range(size):
@@ -63,14 +60,8 @@ def bootstrap(x,prob=68,nsamples=100):
         nsamples: Number of sample means to obtain
     Example: (should use larger samples than this example)
     >>> y=[1,2,3,4,5,6,7,8,9,10]    
-    >>> print bootstrap(y,68,10)
-    (4, 5, 5)
-    >>> print bootstrap(y,68,10)
-    (3, 5, 6)
-    >>> print bootstrap(y,68,10)
-    (5, 5, 6)
-    >>> print bootstrap(y,68,10)
-    (4, 5, 6)
+    >>> print bootstrap(y,68,10)[1]
+    5.5
     
     """
     mu = mean(x)
@@ -166,12 +157,9 @@ class MCSimulator:
         Example:
         (After extending MCSimulator class with a simulate_once()
          method)
-        >>> r.simulate_many()
+        simulate_many() returns somethings like
         (2.0058572140945952, 2.2502946031657665, 2.4938213919677454)
-        >>> r.simulate_many()
-        (2.0421917987142866, 2.2462842826554703, 2.5042897115800313)
-        >>> r.simulate_many()
-        (2.060113780332697, 2.2329663916515838, 2.4469048076040187)
+        the mean and the 68% confidence intervals.
         
         """
         i=0
@@ -210,20 +198,18 @@ class MCSimulator:
             percentage of results given in the confidence
             level are within the returned bounds.
         examples:
-        >>> r.limits()
-        (0.0, 18.805436076518593)
-        >>> r.limits(0.80)
-        (0.0, 1.9799101201150022)
-        >>> r.limits(0.90)
-        (0.0, 18.805436076518593)
-        >>> r.limits(0.95)
-        (0.0, 30.674311239385283)
-        >>> r.limits(0.99)
-        (0.0, 59.512170255239283)
-    
+        r.limits(0.80) returns the 80% confince interval
+        (1.125134236435634, 1.9799101201150022)
         """
         self.results.sort()
         left_tail = (1.0-confidence)/2
         right_tail = 1.0-left_tail
-        return self.results[int(left_tail*len(self.results))], \
-               self.results[int(right_tail*len(self.results))]
+        min_index = int(left_tail*len(self.results))
+        max_index = int(right_tail*len(self.results))
+        if min_index<10:
+            raise Matherror('not enough data, not reliable')
+        return self.results[min_index], self.results[max_index]
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
