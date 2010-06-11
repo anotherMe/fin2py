@@ -19,6 +19,9 @@
 from numeric import *
 import urllib, datetime, time, math
 
+__all__=['Storage','Stock', 'cache', 'mean', 'variance', 'stddev', 'covariance',
+         'correlation','testStock']
+
 class Storage(dict):
 
     """Dictionary class used to store stock data.

@@ -1,4 +1,5 @@
-"""finance.py
+"""
+finance.py
 
        Functions
        ----------
@@ -16,10 +17,15 @@
 
 from yahoo import *
 from mc import *
+from math import *
 from numeric import *
 import random
+from copy import deepcopy
 
-def npv(amount,days,annual_risk_free_rate=0.05,days_in_year=250,probability=1.0):
+__all__=['npv','Markowitz',
+         'OptionPricerSimple','OptionJumpDiffusion','Market','OpRiskModel']
+
+def npv(amount,days,annual_risk_free_rate=0.05,days_in_year=250):
     """Compute the NPV of certain amount using fixed rate.
          
     Compute the net presemt value of a financial transaction that pays
@@ -36,9 +42,6 @@ def npv(amount,days,annual_risk_free_rate=0.05,days_in_year=250,probability=1.0)
         The risk free rate, or the discount rate. Defaulted to be 0.05.
     days_in_year : int
         Number of trading days in a year. Default is 250.
-    probability : float
-        The probability to have the certain amount at the given day.
-        Defaulted to be 1.0.
 
     Return
     ------
@@ -46,12 +49,65 @@ def npv(amount,days,annual_risk_free_rate=0.05,days_in_year=250,probability=1.0)
           Net present value.
 
     Example:
-    print npv(amount=550.75,days=180,annual_risk_free_rate0.02,days_in_year=365,probablity=1.0)
-
-    Output:
+    >>> print npv(amount=550.75,days=180,annual_risk_free_rate=0.02,days_in_year=365)
     545.344645567
     """
-    return probability*amount*exp(-days*annual_risk_free_rate/days_in_year)
+    return amount*exp(-days*annual_risk_free_rate/days_in_year)
+
+class Markowitz:
+    def __init__(self,returns, cov, r_free=0.05, checkpoint=None):
+        self.returns = returns
+        self.returnsv=[[r] for r in self.returns]
+        self.cov=cov
+        self.inv_cov=inverse(cov,checkpoint)
+        self.r_free=r_free
+        
+        
+    def normalize(self,v):
+        v=deepcopy(v)
+        norm=0.0
+        for x in v: norm+=x[0]
+        for x in v: x[0]=float(x[0])/abs(norm)
+        return v
+    
+    def risk_return(self,x_mar):
+        n=len(self.returnsv)
+        r_freev=[[self.r_free]]*n
+        x_free=1.0-sum([x[0] for x in x_mar])
+        r=multiply(transpose(self.returnsv),x_mar)[0][0]+x_free*self.r_free
+        sigma=sqrt(multiply(transpose(x_mar),multiply(self.cov,x_mar))[0][0])
+        return x_free, r, sigma
+
+    def optimize(self):    
+        n=len(self.returns)    
+        r_freev=[[self.r_free]]*n
+        ones=[[1.0]]*n
+        invSI=multiply(self.inv_cov,ones)
+        IinvSI=multiply(transpose(ones),invSI)[0][0]
+        invSr=multiply(self.inv_cov,self.returnsv)   
+        IinvSr=multiply(transpose(ones),invSr)[0][0]
+        rinvSr=multiply(transpose(self.returnsv),invSr)[0][0]
+        # portfolio min variance
+        x_min=self.normalize(invSI)
+        r_min=multiply(transpose(self.returnsv),x_min)[0][0]
+        sigma_min=sqrt(multiply(transpose(x_min),multiply(self.cov,x_min))[0][0])
+        # portfolio Markowitz
+        invSr=multiply(self.inv_cov,sub(self.returnsv,r_freev))
+        x_mar=self.normalize(invSr)
+        x_free,r_mar,sigma_mar=self.risk_return(x_mar)
+        x_mar=[x[0] for x in x_mar]
+        # parameters of hyperbola
+        a2=1.0/IinvSI
+        b2=(rinvSr*IinvSI-IinvSr**2)*a2*a2
+        # hyperbola sigma^2/a2 - (r-r_min)^2/b2=1
+        return x_mar, r_mar, sigma_mar, (r_min, a2, b2)
+
+def test_Markowitz():
+    returns = [random.random()/10 for i in range(10)]
+    cov = [[ (1.0 if i==j else 0)+0.01*(i+j)*(i-j)**2 for i in range(10)] for j in range(10)]
+    m=Markowitz(returns,cov)
+    print m.optimize()
+
 
 class OptionPricerSimple(MCSimulator):
     """Simple option pricer
@@ -567,4 +623,5 @@ class OpRiskModel(MCSimulator):
 
 if __name__ == '__main__':
     import doctest
+    test_Markowitz()
     doctest.testmod()

@@ -1,7 +1,17 @@
 from math import *
-from copy import copy, deepcopy
 from random import *
+from copy import copy, deepcopy
 import time
+
+
+__all__ = ['mean', 'variance', 'stddev', 'covariance', 'correlation', 'bin', 'E',
+           'prettylist', 'matrix', 'pprint', 'rows', 'cols', 'add', 'sub',
+           'multiply', 'inverse', 'test_inverse', 'transpose', 'Cholesky', 'test_Cholesky',
+           'identity', 'diagonal', 'maxind', 'Jacobi', 'test_Jacobi', 'fitting_function',
+           'fit', 'POLYNOMIAL', 'EXPONENTIAL', 'test_fit', 'AR1filter', 'test_AR1filter',
+           'truncate_eigenvalues', 'cov2cor', 'cor2cov', 'cor2cor',
+           'truncate_eigenvalues_cor', 'truncate_eigenvalues_cov', 
+           'test_truncate_eigenvalues_cov', 'mean_LA', 'covariance_LA', 'test_all']
 
 ################# Exception Class #################
 
@@ -778,66 +788,6 @@ def test_truncate_eigenvalues_cov():
     for i in range(n):
         print e1[i],e2[i]
     return
-
-def CorrelationMatrix(table,do_AR1fiter=True):    
-    """Takes a table of the form [[(date,return),...],[(date,return),...],...]
-       and filters each time series (AR1fiter). computes covariance matrix,
-       and removes negative eigenvalues
-
-    """    
-    n=len(table)
-    mean=[0]*n
-    for series in table:
-        r=[r for d,r in series]
-        if do_AR1filter: a, r=AR1filter(r)
-        for i in range(len(series)):
-            series[i]=(series[i][d],r[i])
-            mean[i]+=r[i]
-            pass
-        mean[i]/=len(series)
-        pass
-
-def normalize(v):
-    v=deepcopy(v)
-    norm=0.0
-    for x in v: norm+=x[0]
-    for x in v: x[0]=float(x[0])/abs(norm)
-    return v
-
-def risk_return(cov,returns,x_mar,r_free):
-    n=len(returns)
-    r_freev=[[r_free]]*n
-    x_free=1.0-sum([x[0] for x in x_mar])
-    r=multiply(transpose(returns),x_mar)[0][0]+x_free*r_free
-    sigma=sqrt(multiply(transpose(x_mar),multiply(cov,x_mar))[0][0])
-    return x_free, r, sigma
-
-def Markowitz(returns, cov, r_free, checkpoint=None):    
-    n=len(returns)    
-    inv_cov=inverse(cov,checkpoint)
-    r_freev=[[r_free]]*n
-    ones=[[1.0]]*n
-    returns=[[r] for r in returns]
-    invSI=multiply(inv_cov,ones)
-    IinvSI=multiply(transpose(ones),invSI)[0][0]
-    invSr=multiply(inv_cov,returns)   
-    IinvSr=multiply(transpose(ones),invSr)[0][0]
-    rinvSr=multiply(transpose(returns),invSr)[0][0]
-    # portfolio min variance
-    x_min=normalize(invSI)
-    r_min=multiply(transpose(returns),x_min)[0][0]
-    sigma_min=sqrt(multiply(transpose(x_min),multiply(cov,x_min))[0][0])
-     # portfolio Markowitz
-    invSr=multiply(inv_cov,sub(returns,r_freev))
-    x_mar=normalize(invSr)
-    x_free,r_mar,sigma_mar=risk_return(cov,returns,x_mar,r_free)
-    x_mar=[x[0] for x in x_mar]
-    # parameters of hyperbola
-    a2=1.0/IinvSI
-    b2=(rinvSr*IinvSI-IinvSr**2)*a2*a2
-    # hyperbola sigma^2/a2 - (r-r_min)^2/b2=1
-    return x_mar, r_mar, sigma_mar, (r_min, a2, b2)
-    
 
 def mean_LA(series):
     """series=[(datetime, rate),..]
