@@ -1,0 +1,10 @@
+This is a work in progress
+
+todo
+====
+- add trategy testing engine
+- add mumeric optimization, inversion and integration from
+- add Ho-Lee and HJM models
+- add more option types
+- add binomial tree models
+- add plotting

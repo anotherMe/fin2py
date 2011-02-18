@@ -4,25 +4,10 @@ from copy import copy, deepcopy
 import time
 
 
-__all__ = ['mean', 'variance', 'stddev', 'covariance', 'correlation', 'bin', 'E',
-           'prettylist', 'matrix', 'pprint', 'rows', 'cols', 'add', 'sub',
-           'multiply', 'inverse', 'test_inverse', 'transpose', 'Cholesky', 'test_Cholesky',
-           'identity', 'diagonal', 'maxind', 'Jacobi', 'test_Jacobi', 'fitting_function',
-           'fit', 'POLYNOMIAL', 'EXPONENTIAL', 'test_fit', 'AR1filter', 'test_AR1filter',
-           'truncate_eigenvalues', 'cov2cor', 'cor2cov', 'cor2cor',
-           'truncate_eigenvalues_cor', 'truncate_eigenvalues_cov', 
-           'test_truncate_eigenvalues_cov', 'mean_LA', 'covariance_LA', 'test_all']
+################# Global Parameters #################
 
-################# Exception Class #################
-
-class Matherror(Exception):
-    """User-defined Matherror exception class."""
-    def __init__(self,message):
-        Exception.__init__(self)
-        self.message=message
-
-    def __str__(self):
-        return 'Matherror:'+self.message
+PRECISION=1e-6
+EPSILON = 1e-3
 
 ############### Statistical Methods ###############
 
@@ -89,9 +74,11 @@ def stddev(series):
 
     Examples
     --------
+    @Modified by Sean Neilan
+    1.118033988749895
     >>> x=[1,2,3,4]
-    >>> stddev(x)
-    1.1180339887498949
+    >>> round(stddev(x), 6)
+    1.118034
 
     """
     return sqrt(variance(series))
@@ -127,7 +114,7 @@ def covariance(series_x, series_y):
 
     """
     if len(series_x)!=len(series_y):
-        raise Matherror("serieses have different size")
+        raise RuntimeError, 'serieses have different size'
     return mean([x*series_y[i] for i,x in enumerate(series_x)])-mean(series_x)*mean(series_y)
 
 def correlation(series_x, series_y):
@@ -164,7 +151,7 @@ def correlation(series_x, series_y):
     stdx=stddev(series_x)
     stdy=stddev(series_y)
     if stdx==0 or stdy==0:
-        raise Matherror('zero standard deviation')
+        raise RuntimeError, 'zero standard deviation'
     return covariance(series_x,series_y)/(stddev(series_x)*stddev(series_y))
 
 
@@ -198,7 +185,7 @@ def bin(series,n):
     """
     n=int(n)
     if n<=0 or len(series)==0:
-        raise Matherror('no data')
+        raise RuntimeError, 'no data'
     minim=float(min(series))
     maxim=float(max(series))
     interval=(maxim-minim)/n
@@ -238,6 +225,37 @@ def E(f, series):
     def to_tuple(x):
         return x if isinstance(x,(list,tuple)) else (x,)
     return float(sum(f(*to_tuple(a)) for a in series))/len(series)
+
+
+def norm_1(A):
+    """Calculates first norm of A. (The absolute total value of the
+        largest column in A.)
+
+    Parameters
+    ----------
+    A : matrix(N,M)
+
+    Return
+    ------
+    m : double
+        The first vector norm of A.
+
+    Example
+    --------
+    >>> A = matrix(3,1)
+    >>> A[0][0] = 1
+    >>> A[1][0] = -1
+    >>> A[2][0] = 2
+    >>> print norm_1(A)
+    4.0
+    """
+    z = m = 0.0
+    for j in range(cols(A)):
+        z = 0.0
+        for i in range(rows(A)):
+            z += abs(A[i][j])
+        if z > m: m = z
+    return m
     
         
 ############### Miscellaneous ###############
@@ -266,7 +284,7 @@ def prettylist(series):
         
 ############### Linear Algebra ###############
 
-def matrix(rows=0,cols=0):
+def matrix(rows=1,cols=1):
     """Constuctor a all zero matrix.
 
     Parameters
@@ -366,9 +384,29 @@ def cols(A):
 
     """
     return len(A[0])
-        
+
+
 def add(A,B):
-    """multiplies a number of matrix A by a matrix B"""
+    """multiplies a number of matrix A by a matrix B.
+
+    Parameters
+    ----------
+    A : int/float/list
+        Either a single number or a matrix.
+
+    Returns
+    -------
+    matrix : list
+        The resulting matrix after addition.
+
+    Examples
+    --------
+    >>> A=5
+    >>> B=[[1,2], [3,4]]
+    >>> add(A,B)
+    [[6, 2], [3, 9]]
+
+    """
     if type(A)==type(1) or type(A)==type(1.0):
         C=deepcopy(B)
         for i in range(rows(B)):            
@@ -377,19 +415,20 @@ def add(A,B):
         return C
     else:
         C=deepcopy(B)
-        for i in range(rows(B)):            
-            for j in range(cols(B)):            
+        for i in range(rows(B)):
+            for j in range(cols(B)):
                 C[i][j]+=A[i][j]
                 pass
             pass
         return C
     pass
 
+
 def sub(A,B):
     """multiplies a number of matrix A by a matrix B"""
     C=deepcopy(A)
-    for i in range(rows(A)):            
-        for j in range(cols(A)):            
+    for i in range(rows(A)):
+        for j in range(cols(A)): 
             C[i][j]-=B[i][j]
             pass
         pass
@@ -399,27 +438,52 @@ def sub(A,B):
 def multiply(A,B):
     """multiplies a number of matrix A by a matrix B"""
     if type(A)==type(1) or type(A)==type(1.0):
-        C=matrix(rows(B),cols(B))        
+        C=matrix(rows(B),cols(B))
         for i in range(rows(B)):
             for j in range(cols(B)):
                 C[i][j]=A*B[i][j]
-                pass
-            pass
         return C
     else:
-        C=matrix(rows(A),cols(B))        
+        if cols(A) != rows(B):
+            raise RuntimeError, 'matrices are different sizes'
+        C=matrix(rows(A),cols(B))
         for i in range(rows(A)):
             for j in range(cols(B)):
                 for k in range(cols(A)):
                     C[i][j]+=A[i][k]*B[k][j]
-                    pass
-                pass
-            pass        
         return C
-    pass
+
+
+def test_multiply():
+    """Test for the multiply(A,B) function"""
+    print '\n\nTesting multiply(A,B)......... *integer*'
+    A=5.0
+    B=[[1,2], [3,4]]
+    print 'A=',A
+    print 'B=',B
+    C=multiply(A,B)
+    print 'C=',C
+    print '\n\nTesting multiply(A,B)......... *matrix*'
+    A=[[5, 6], [7, 8]]
+    print 'A=',A
+    print 'B=',B
+    C=multiply(A,B)
+    print 'C=',C
+    print '\n\nTesting multiply(A,B)......... *fails*'
+    try:
+        A=[[1,2,3], [4,5,6], [7,8,9]]
+        print 'A=',A
+        print 'B=',B
+        C=multiply(A,B)
+        print 'C=',C
+    except RuntimeError:
+        print 'Expected failure. Continuing...'
+    return
 
 def inverse(A,checkpoint=None):
-    """Computes the inverse of A using Gauss-Jordan emilimination"""
+    """Computes the inverse of A using Gauss-Jordan elimination"""
+    if rows(A) != cols(A):
+        raise RuntimeError, 'matrix not squared'
     A=deepcopy(A)
     n=rows(A)
     B=matrix(n,n)
@@ -445,15 +509,24 @@ def inverse(A,checkpoint=None):
         pass
     return B
 
+
 def test_inverse():
     """Test for the inverse(A) function"""
-    print "\n\nTesting inverse(A)........."
+    print '\n\nTesting inverse(A).........'
     A=[[1,2,3],[2,4,8],[1,3,7]]
-    print "A=",A
+    print 'A=',A
     B=inverse(A)
-    print "B=",B
+    print 'B=',B
     C=multiply(A,B)
-    print "A*B=",C
+    print 'A*B=',C
+    try:
+        print '\n\nTesting inverse(D)......... *fails*'
+        D=[[1,2,3],[2,4,8]]
+        print 'D=',D
+        E=inverse(D)
+        print 'E=',E
+    except RuntimeError:
+        print 'Expected failure. Continuing...'
     return
 
 def transpose(A):
@@ -467,12 +540,14 @@ def transpose(A):
     return B
 
 def Cholesky(A):
-    if A!=transpose(A): raise Matherror("not symmetric")
+    if A!=transpose(A):
+        raise RuntimeError, 'not symmetric'
     L=deepcopy(A)
     for k in range(cols(L)):
-        if L[k][k]<=0: raise Matherror("not positive definitive")
+        if L[k][k]<=0:
+            raise RuntimeError, 'not positive definitive'
         p=L[k][k]=sqrt(L[k][k])
-        for i in range(k+1,rows(L)):        
+        for i in range(k+1,rows(L)):
             L[i][k]/=p
             pass
         for j in range(k+1,rows(L)):
@@ -491,14 +566,82 @@ def Cholesky(A):
 
 def test_Cholesky():
     """Test for the inverse(A) function"""
-    print "\n\nTesting Cholesky(A)........."
+    print '\n\nTesting Cholesky(A).........'
     A=[[4,2,1],[2,9,3],[1,3,16]]
-    print "A=",A
+    print 'A=',A
     L=Cholesky(A)
-    print "L=",L
+    print 'L=',L
     C=sub(multiply(L,transpose(L)),A)
-    print "L*L^T-A=",C
+    print 'L*L^T-A=',C
     return
+
+def Markoviz(mu, A, r_bar):
+    """Assess Markoviz risk/return.
+
+    Parameters
+    ----------
+    mu : list
+        Matrix
+    A : list
+        Matrix
+    r_bar : float
+        Something
+
+    Returns
+    -------
+    matrix : list
+        Matrix
+    
+    Examples
+    --------
+    [[0.5566343042071197], [0.2750809061488674], [0.16828478964401297]]
+    >>> A = matrix(3, 3)
+    >>> A[0][0] = pow(0.20, 2)
+    >>> A[1][1] = pow(0.30, 2)
+    >>> A[2][2] = pow(0.40, 2)
+    >>> A[0][1] = A[1][0] = 0.10 * 0.20 * 0.30
+    >>> A[0][2] = A[2][0] = 0.25 * 0.20 * 0.40
+    >>> A[1][2] = A[2][1] = 0.50 * 0.40 * 0.30
+    >>> mu = matrix(3, 1)
+    >>> mu[0][0] = 0.10
+    >>> mu[1][0] = 0.12
+    >>> mu[2][0] = 0.15
+    >>> r_bar = 0.05
+    >>> ret = Markoviz(mu, A, r_bar)
+    >>> for m in range(len(ret)): ret[m][0] = round(ret[m][0], 7)
+    >>> ret
+    [[0.5566343], [0.2750809], [0.1682848]]
+    """
+    x = matrix(rows(A), 1)
+    for r in range(rows(mu)): mu[r][0] -= r_bar
+    x = multiply(inverse(A), mu)
+    x_norm = 0.0
+    for r in range(rows(mu)): x_norm += x[r][0]
+    for r in range(rows(mu)): x[r][0] /= x_norm
+    return x
+
+
+def test_Markoviz():
+    """Test for the Markoviz(mu, A, r_bar) function"""
+    A = matrix(3, 3)
+    A[0][0] = pow(0.20, 2)
+    A[1][1] = pow(0.30, 2)
+    A[2][2] = pow(0.40, 2)
+    A[0][1] = A[1][0] = 0.10 * 0.20 * 0.30
+    A[0][2] = A[2][0] = 0.25 * 0.20 * 0.40
+    A[1][2] = A[2][1] = 0.50 * 0.40 * 0.30
+    mu = matrix(3, 1)
+    mu[0][0] = 0.10
+    mu[1][0] = 0.12
+    mu[2][0] = 0.15
+    r_bar = 0.05
+    
+    x = Markoviz(mu, A, r_bar)
+    
+    pprint(x)
+    print 'return: ', multiply(transpose(mu), x)
+    print 'risk: ', sqrt(multiply(multiply(transpose(x), A), x)[0][0])
+
 
 def identity(n):
     A=matrix(n,n)
@@ -528,7 +671,8 @@ def Jacobi(A,checkpoint=False):
     """
     t0=time.time()
     n=rows(A)
-    if n!=cols(A): raise Matherror("matrix not squared")
+    if n!=cols(A):
+        raise RuntimeError, 'matrix not squared'
     S=matrix(n,n)
     for i in range(n):
         for j in range(n):
@@ -600,12 +744,12 @@ def Jacobi(A,checkpoint=False):
         sum=sqrt(sum)
         for j in range(n): U[j][i]=E[i][j]/sum
         pass
-    return U,e    
+    return U,e
     
 
 def test_Jacobi():
     """Test the Jacobi algorithm"""
-    print "Testing Jacobi on random matrices..."
+    print 'Testing Jacobi on random matrices...'
     n=4
     A=matrix(n,n)
     for k in range(3):
@@ -614,10 +758,10 @@ def test_Jacobi():
                 A[i][j]=A[j][i]=gauss(10,10)
                 pass
             pass
-        print "A=",
+        print 'A=',
         pprint(A)
         U,e=Jacobi(A)
-        print "U*e*U^T-A=",
+        print 'U*e*U^T-A=',
         pprint(sub(multiply(U,multiply(diagonal(e),transpose(U))),A))
         pass
     return
@@ -658,15 +802,15 @@ CUBIC=[lambda x: 1.0, lambda x: x, lambda x: x*x, lambda x: x*x*x]
 QUARTIC=[lambda x: 1.0, lambda x: x, lambda x: x*x, lambda x: x*x*x, lambda x: x*x*x*x]
 def POLYNOMIAL(n):
     """Generic polynmial fitting function"""
-    return [eval('lambda x: pow(x,%i)' % i) for i in range(n+1)]        
+    return [(lambda x,i=i: pow(x,i)) for i in range(n+1)]
 def EXPONENTIAL(n):
     """Generic exponential fitting function"""
-    return [eval('lambda x: exp(x*%i)' % i) for i in range(n+1)]        
+    return [(lambda x,i: exp(x*i)) for i in range(n+1)]
 
 def test_fit():
     """Test for the fit function"""
-    print "\n\nTesting fit(QUADRATIC,...)........."
-    print "data generated using 5+0.8*k+0.3*k*k+gauss(0,1)"
+    print '\n\nTesting fit(QUADRATIC,...).........'
+    print 'data generated using 5+0.8*k+0.3*k*k+gauss(0,1)'
     x=[]
     y=[]
     for k in range(100):
@@ -674,11 +818,11 @@ def test_fit():
         y.append(5+0.8*k+0.3*k*k+gauss(0,1))
         pass
     a,chi2,ff=fit(QUADRATIC,x,y)
-    print "f(x)=(",a[0][0],")+(",a[1][0],")*x+(",a[2][0],")*x*x"
-    print "chi2=",chi2
+    print 'f(x)=(',a[0][0],')+(',a[1][0],')*x+(',a[2][0],')*x*x'
+    print 'chi2=',chi2
     
 def AR1filter(r):
-    r.sort()    
+    r.sort()
     """Performs AR(1) filtering and eliminates auto-correlation"""
     x=[]
     y=[]
@@ -701,7 +845,7 @@ def AR1filter(r):
 
 def test_AR1filter():
     """Test for AR1filter"""
-    print "\n\nTesting AR1filter()........."
+    print '\n\nTesting AR1filter().........'
     y=[(0,0.05)]
     for k in range(1,30):
         y.append((k,0.05+y[k-1][1]*0.3+gauss(0,0.01)))
@@ -728,14 +872,14 @@ def cov2cor(cov):
     for i in range(n):
         sigma[i]=sqrt(cov[i][i])
         for j in range(0,i+1):
-            cor[i][j]=cor[j][i]=cov[i][j]/sigma[i]/sigma[j]            
+            cor[i][j]=cor[j][i]=cov[i][j]/sigma[i]/sigma[j]           
             pass
         pass
     return cor, sigma
 
 def cor2cov(cor,sigma):
     n=rows(cor)
-    cov=matrix(n,n)    
+    cov=matrix(n,n)
     for i in range(n):
         for j in range(0,i+1):
             cov[i][j]=cov[j][i]=cor[i][j]*sigma[i]*sigma[j]
@@ -771,9 +915,9 @@ def truncate_eigenvalues_cov(cov,delta=0.01,checkpoint=None):
     return cov,e1,e2
 
 def test_truncate_eigenvalues_cov():
-    print "Testing truncate_eigenvalues_cov"
+    print 'Testing truncate_eigenvalues_cov'
     n=5
-    A=matrix(n,n)    
+    A=matrix(n,n)
     for i in range(n):
         A[i][i]=abs(gauss(10,10))
         for j in range(i+1,n):
@@ -822,9 +966,1023 @@ def covariance_LA(series1,m1,series2,m2):
         return sum/k, rs
     return 0.0,[]
 
+
+############## new stuff from class Function ##############
+class NoConvergence(RuntimeError):
+    pass
+class WrongParameters(RuntimeError):
+    pass
+
+############## numerical derivatives ##############
+def D(f,h=EPSILON):
+    return (lambda x,f=f,h=h: (f(x+h)-f(x-h))/(2.0*h))
+
+def D2(f,h=EPSILON):
+    return (lambda x,f=f,h=h: (f(x+h)-2.0*f(x)+f(x-h))/(h*h))
+
+
+############## Solvers and Optimizers ############        
+
+def SolveFixedPoint(f, x_guess):
+    """Find a point where x = f(x) intersects the line y = x.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    x_guess : double
+        Starting point for search
+
+    Returns
+    -------
+    x : double
+        Point where f(x) = x
+ 
+    Example
+    --------
+    >>> f = lambda x: (x+7)/(x-4)
+    >>> x = 1.0
+    >>> str(SolveFixedPoint(f, x))[0:8]
+    '-6.99999'
+
+    """ 
+
+    def g(x): return f(x) + x
+
+    x = x_guess
+    x_old = x + 2.0 * PRECISION
+
+    while abs(x_old-x)>=PRECISION:
+        if abs(D(g)(x)) >= 1: 
+            raise RuntimeError, 'no convergence'
+        x_old=x
+        x = g(x)
+    return x
+
+
+def SolveBisection(f, a, b):
+    """Finds a point x between a and b such that f(x) == 0.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x.
+    a : double
+        A double such that f(a) is negative if f(b) is positive or vice versa.
+    b : double
+        A double such that f(b) is negative if f(a) is positive or vice versa.
+
+    Returns
+    -------
+    x : double
+        Point between a and b such that f(x) == 0.
+ 
+    Example
+    --------
+    >>> f = lambda x: (x+4)*(x-3)*(x+7)
+    >>> a = 0.0
+    >>> b = 4.0
+    >>> SolveBisection(f, a, b)
+    3.0
+    """ 
+
+    fa = f(a)
+    fb = f(b)
+    x = fx = 0.0
+    if fa == 0: return a
+    if fb == 0: return b
+    if fa*fb > 0:
+        raise RuntimeError, 'f(a) and f(b) must have opposite sign'
+
+    for k in range(20):
+        #print x
+        x = (a+b)/2
+        fx = f(x)
+        if abs(fx) < PRECISION:
+            return x
+        elif fx * fa < 0:
+             b = x
+             fb = fx
+        elif fx * fb < 0:
+            a = x
+            fa = fx
+    return x
+
+
+def OptimizeBisection(f, a, b):
+    """Finds a point x between a and b such that f'(x) == 0
+    f'(a) must be negative, f'(b) must be positive or vice versa.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x.
+    a : double
+        A double such that f'(a) is negative if f'(b) is positive or vice versa.
+    b : double
+        A double such that f'(b) is negative if f'(a) is positive or vice versa.
+
+    Returns
+    -------
+    x : double
+        Point between a and b such that f'(x) == 0.
+ 
+    Example
+    --------
+    >>> f = lambda x: pow(x,4)/4+(8.0*pow(x,3))/3-(5.0*pow(x,2))/2-84.0*x
+    >>> a = 0.0
+    >>> b = 4.0
+    >>> str(OptimizeBisection(f, a, b))[0:5]
+    '2.999'
+    """
+
+    f1a = D(f)(a)
+    f1b = D(f)(b)
+    x = fx = 0.0
+    if f1a == 0: return a
+    if f1b == 0: return b
+    if f1a*f1b > 0:
+        raise RuntimeError, 'D(f)(a) and D(f)(b) must have opposite parameters'
+
+    for k in range(20):
+        #print x
+        x = (a+b)/2
+        f1x = D(f)(x)
+        if abs(f1x) < PRECISION:
+            return x
+        elif f1x*f1a<0:
+            b = x
+            f1b = f1x
+        elif f1x*f1b<0:
+            a = x
+            f1a = f1x
+    return x
+
+
+
+def SolveNewton(f, x):
+    """Starts with a guess x that is reasonably close to a root of f(x). Uses 
+        Newton's iteration to find this root.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    x : double
+        Starting point for search
+
+    Returns
+    -------
+    x : double bubble
+        Point where f(x) = x
+ 
+    Example
+    --------
+    Find the square root of 612
+    x^2 = 612
+    f(x) = pow(x, 2)-612
+    initial guess of 10
+    >>> f = lambda x: pow(x,2)-612
+    >>> x = 10.0
+    >>> str(SolveNewton(f, x))[0:9]
+    '24.738633'
+    """
+    x=float(x)
+    x_old = x+PRECISION
+    f1x = 0.0
+    for k in range(20):
+        #print x
+        f1x = D(f)(x)
+        if abs(f1x) < PRECISION:
+            raise RuntimeError, 'unstable solution'
+        x_old = x
+        x = x-f(x)/f1x
+        if abs(x-x_old) < PRECISION: return x
+    raise RuntimeError, 'no convergence'
+
+
+def OptimizeNewton(f, x):
+    """Starts with a guess x that is reasonably close to a root of f'(x). Uses 
+        Newton's iteration to find this root.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    x : double
+        Starting point for search
+
+    Returns
+    -------
+    x : double
+ 
+    Example
+    --------
+    >>> f = lambda x: (2*x+9)*(pow(x,2)-6)
+    >>> x = .5
+    >>> str(OptimizeNewton(f, x))[0:8]
+    '0.561552'
+    """
+    x=float(x)
+    x_old = x + PRECISION
+    f2x = 0.0
+    for k in range(20):
+        #print x
+        f2x = D2(f)(x)
+        if abs(f2x)<PRECISION:
+            raise RuntimeError, 'unstable solution'
+        x_old = x
+        x = x-D(f)(x)/f2x
+        if abs(x-x_old) < PRECISION: return x
+    raise RuntimeError, 'no covergence'
+
+
+def SolveNewtonBisection(f, a, b):
+    """Finds a number c such that a < c < b and 
+    f(x) = 0. Uses Newton's iteration to find this root.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    a : double
+        A double such that f(a) is negative if f(b) is positive or vice versa.
+    b : double
+        A double such that f(b) is negative if f(a) is positive or vice versa.
+
+    Returns
+    -------
+    x : double
+        Point between a and b such that f(x) == 0.
+ 
+    Example
+    --------
+    >>> f = lambda x: (2*x+9)*(pow(x,2)-6)
+    >>> a = -5
+    >>> b = 5
+    >>> str(SolveNewtonBisection(f, a, b))[0:8]
+    '2.449489'
+
+    """
+    a,b=float(a),float(b)
+    fa = f(a)
+    fb = f(b)
+    x = fx = 0.0
+    if fa == 0: return a
+    if fb == 0: return b
+    if fa*fb > 0:
+        raise RuntimeError, 'f(a) and f(b) must have opposite sign'
+    f1x = 0.0
+    for k in range(20):
+        #print x
+        if abs(f1x) > PRECISION:
+            x = x - fx/f1x
+        if abs(f1x) <= PRECISION or x <= a or x >= b:
+            x = (a + b)/2
+        fx = f(x)
+        f1x = D(f)(x)
+        if abs(fx) < PRECISION:
+            return x
+        elif fx * fa < 0:
+            b = x
+            fb = fx
+        elif fx * fb < 0:
+            a = x
+            fa = fx
+    return x
+
+
+def OptimizeNewtonBisection(f, a, b):
+    """Finds a number c such that a < c < b and 
+    f'(x) = 0. Uses Newton's iteration to find this root.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    a : double
+        A double such that f'(a) is negative if f'(b) is positive or vice versa.
+    b : double
+        A double such that f'(b) is negative if f'(a) is positive or vice versa.
+
+    Returns
+    -------
+    x : double
+        Point between a and b such that f'(x) == 0.
+ 
+    Example
+    --------
+    >>> f = lambda x: (2*x+9)*(pow(x,2)-6)
+    >>> a = -2
+    >>> b = 1
+    >>> str(OptimizeNewtonBisection(f, a, b))[0:8]
+    '0.561552'
+    """
+    a,b=float(a),float(b)
+    f1a = D(f)(a)
+    f1b = D(f)(b)
+    if f1a == 0: return a
+    if f1b == 0: return b
+    if f1a * f1b > 0:
+        raise RuntimeError, 'D(f)(a) and D(f)(b) must have opposite sign'
+    x = (a+b)/2
+    f1x = D(f)(x)
+    f2x = D2(f)(x)
+    for k in range(20):
+        #print x
+        if abs(f1x) > PRECISION:
+            x = x - f1x/f2x
+        if abs(f2x) <= PRECISION or x <= a or x >= b:
+            x = (a + b) / 2
+        f1x = D(f)(x)
+        f2x = D2(f)(x)
+        if abs(f1x) < PRECISION:
+            return x
+        elif f1x * f1a < 0:
+            b = x
+            f1b = f1x
+        elif f1x * f1b < 0:
+            a = x
+            f1a = f1x
+    return x
+
+
+def SolveSecant(f, x):
+    """Starts with a guess x that is reasonably close to a root of f(x). Uses 
+        the Secant Method iteration to find this root. Returns a number
+        x such that f(x) = 0.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    x : double
+        Starting point for search
+
+    Returns
+    -------
+    x : double
+ 
+    Example
+    --------
+    >>> f = lambda x: cos(x) - x * x * x
+    >>> x = 1.0
+    >>> str(SolveSecant(f, x))[0:8]
+    '0.865474'
+    """
+    x=float(x)
+    x_old = 0.0
+    fx = f1x = f_old = 0.0
+    x_old = x - 0.0001
+    f_old = f(x_old)
+
+    for k in range(20):
+        #print x
+        fx = f(x)
+        f1x = (fx-f_old)/(x-x_old)
+        if abs(f1x) < PRECISION:
+            raise RuntimeError, 'instability'
+        f_old = fx
+        x_old = x
+        x = x - fx/f1x
+        if k > 1 and abs(x-x_old)<PRECISION: return x
+    raise RuntimeError, 'no convergence'
+
+
+
+
+def OptimizeSecant(f, x):
+    """Starts with a guess x that is reasonably close to a root of f'(x). Uses 
+        the Secant Method iteration to find this root.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    x : double
+        Starting point for search
+
+    Returns
+    -------
+    x : double
+ 
+    Example
+    --------
+    >>> f = lambda x: (x-3)**2
+    >>> x = 1.0
+    >>> str(OptimizeSecant(f, x))[0:8]
+    '3.0'
+    """
+    x=float(x)
+    x_old = f1x = f2x = f1_old = 0.0
+    x_old = x - 0.0001
+    f1_old = D(f)(x_old)
+    for k in range(20):
+        #print x
+        f1x = D(f)(x)
+        f2x = (f1x-f1_old)/(x-x_old)
+        if abs(f2x)<PRECISION:
+            raise RuntimeError, 'unstable solution'
+        f1_old = f1x
+        x_old = x
+        x = x-f1x/f2x
+        if k > 1 and abs(x-x_old) < PRECISION: 
+            return x
+    raise RuntimeError, 'no convergence'
+
+
+def OptimizeGoldenSection(f, a, b):
+    """ Searches for the minimum of a given function, f, with
+    the initial interval being between [a, b].
+    
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter a or b
+    a : double
+        The lower-bound of the initial interval
+    b : double
+        The upper-bound of the initial interval
+    
+    Returns
+    -------
+    double : The minimum of the function
+    
+    Example
+    -------
+    >>> f = lambda x: x
+    >>> a = 5.123876123
+    >>> b = 14.182
+    >>> str(OptimizeGoldenSection(f, a, b))[0:8]
+    '5.123876'
+    """
+    a,b=float(a),float(b)
+    t = (sqrt(5.0)-1.0)/2.0
+    x1 = a+(1.0-t)*(b-a)
+    x2 = a+(t)*(b-a)
+    fa = f(a)
+    fb = f(b)
+    f1 = f(x1)
+    f2 = f(x2)
+
+    while abs(b-a) > PRECISION:
+        #print (x1-a)/(b-a)
+        if f1 > f2:
+            a = x1
+            fa = f1
+            x1 = x2
+            f1 = f2
+            x2 = a+(t)*(b-a)
+            f2 = f(x2)
+        else:
+            b = x2
+            fb = f2
+            x2 = x1
+            f2 = f1
+            x1 = a + (1.0-t)*(b-a)
+            f1 = f(x1)
+    return b
+
+
+def OptimizeGoldenSection2(f, a, b, t=0.8):
+    """ Searches for the minimum of a given function, f, with
+    the initial interval being between [a, b]. With
+    optional tau, t, value.
+    
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter a or b
+    a : double
+        The lower-bound of the initial interval
+    b : double
+        The upper-bound of the initial interval
+    t : double (default: 0.8)
+        Optional tau value
+    
+    Returns
+    -------
+    double : The minimum of the function with tau value, t
+    
+    Example
+    -------
+    >>> f = lambda x: x
+    >>> a = 7.00005
+    >>> b = 128.129876239
+    >>> str(OptimizeGoldenSection2(f, a, b))[0:8]
+    '7.000050'
+    """
+    a,b= float(a),float(b)
+    x1 = a + (1.0-t)*(b-a)
+    x2 = a + t*(b-a)
+    fa = f(a)
+    fb = f(b)
+    f1 = f(x1)
+    f2 = f(x2)
+    while abs(b-a)>PRECISION:
+        #print (x1-a)/(b-a)
+        if f1>f2:
+            a = x1
+            fa = f1
+            x1 = x2
+            f1 = f2
+            x2 = x1+t*(b-x1)
+            f2 = f(x2)
+        else:
+            b = x2
+            fb = f2
+            x2 = x1
+            f2 = f1
+            x1 = a + (1.0-t)*(x2-a)
+            f1 = f(x1)
+    return b
+
+
+def IntegrateNaive(f, a, b):
+    """ Integrates function, f, from a to b using the Reimann sum.
+    
+    Parameters
+    ----------
+    f : function
+        Function to be integrated
+    a : double
+        Lower-bound of integration
+    b : double
+        Upper-bound of integration
+    
+    Returns
+    -------
+    double
+    
+    Example
+    -------
+    >>> f = lambda x: x
+    >>> a = 3.0
+    >>> b = 4.0
+    >>> IntegrateNaive(f, a, b)
+    3.4999990463256836
+    """
+    a,b= float(a),float(b)
+    I = h = Iold = 0.0
+    N = 2
+    while True:
+        # print N
+        Iold = I
+        I = 0.0
+        h = (b-a)/N # the width of each Reimann rect
+        for i in range(N):
+            I += h*f(a+i*h) # I contains the area of each Reimann rect
+        if N != 2 and abs(I-Iold) < PRECISION: return I # keep running this function until we don't get much change in value
+        N *= 2
+    return I
+
+
+def IntegrateNaive2(f, a, b):
+    """ Integrates function, f, from a to b using Reimann sum, except,
+        last and first rectangles have a width of 0.5.
+    
+    Parameters
+    ----------
+    f : function
+        Function to be integrated
+    a : double
+        Lower-bound of integration
+    b : double
+        Upper-bound of integration
+    
+    Returns
+    -------
+    double
+    
+    Example
+    -------
+    >>> f = lambda x: x
+    >>> a = 3.0
+    >>> b = 4.0
+    >>> IntegrateNaive2(f, a, b)
+    3.5
+    """
+    a,b= float(a),float(b)
+    I = h = Iold = hold = 0.0
+    N = 2
+    while True:
+        #print N
+        Iold = I
+        hold = h
+        I = 0.5 * f(a)
+        h = (b-a)/N
+        for i in range(1, N):
+            I += f(a+i*h)
+        I += 0.5 * f(b)
+        #print N, ' ', I
+        #print I * h
+        #print str(abs(I*h-Iold*hold))[0:8]
+        #print I*h, Iold*hold
+        if N != 2 and abs(I*h-Iold*hold) < PRECISION: return h*I
+        #if N != 2 and abs(I*h-Iold*h) < PRECISION: return h*I
+        N *= 2
+
+
+def IntegrateQuadrature(f, a, b, N):
+    """Calculates the integral of the function f from points a to b with N Vandermonde weights
+        using numerical quadrature.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    a : double
+        Value to start calculating the integral on
+    b : double
+        Value to stop calculating on
+    N : integer
+        Number of squares used to estimate the integral.
+
+    Returns
+    -------
+    I : double
+        The estimated area under f between [a,b].
+ 
+    Example
+    --------
+    >>> f = lambda x: (x+4)*(x-5)
+    >>> str(IntegrateQuadrature(f, 0.0, 10.0, 5))[0:8]
+    '83.33333'
+
+    Notes
+    --------
+    Blows up for large N
+    """
+    a,b= float(a),float(b)
+    h = (b-a)/N
+
+    # create a matrix
+    A = matrix(N, N)
+    C = matrix(N)
+    W = matrix(N)
+    for i in range(N):
+        for j in range(N):
+            A[i][j] = pow(a+(j+1)*h,i)
+        C[i][0] = (pow(b, i+1)-pow(a,i+1))/(i+1)
+    W = multiply(inverse(A), C)
+    blah = multiply(A, W)
+    I = 0.0
+    for i in range(N):
+        I += W[i][0]*f(a+(i+1)*h)
+    return I
+
+
+def IntegrateQuadrature2(f, a, b):
+    """Computes the most precise value we can get out of
+        IntegrateQuadrature for the values of f, a and b.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    a : double
+        Value to start calculating the integral on
+    b : double
+        Value to stop calculating on
+
+    Returns
+    -------
+    I : integer
+        The most precise return value from IntegrateQuadrature.
+        
+    Example
+    --------
+    >>> f = lambda x: (x+4)*(x-5)
+    >>> str(IntegrateQuadrature2(f, 0.0, 10.0))[0:8]
+    '83.33333'
+
+    Notes
+    --------
+    Blows up for large N
+    Due to imprecision between C libraries on different systems,
+        the test case is limited to 8 characters.
+    """
+    a,b= float(a),float(b)
+    I = Iold = 0.0
+    n = 2
+    while True:
+        #print n
+        Iold = I
+        I = IntegrateQuadrature(f, a, b, n)
+        #print 'I=', I
+        if n > 2 and abs(I-Iold)<PRECISION: return I
+        n *= 2
+
+
+def IntegrateAdaptativeQuadrature(f, a, b, n1=3, n2=4):
+    """Recursively calculates smaller and smaller integrals
+        in the area under f(x) in [a,b]. Attempts to reach
+        a maximum level of precision in each integral part.
+
+    Parameters
+    ----------
+    f : function
+        Function taking one parameter x
+    a : double
+        Value to start calculating the integral on
+    b : double
+        Value to stop calculating on
+    n1 : integer
+        Lower bound on squares to calculate integral
+    n2 : integer
+        Upper bound on squares to calculate integral
+
+    Returns
+    -------
+    I : integer
+        The most precise return value from IntegrateQuadrature.
+        
+    Example
+    --------
+    >>> f = lambda x: (x+4)*(x-5)
+    >>> str(IntegrateAdaptativeQuadrature(f, 0.0, 10.0))[0:8]
+    '83.33333'
+
+    Notes
+    --------
+    Blows up for large N
+    Due to imprecision between C libraries on different systems,
+        the test case is limited to 8 characters.
+    """
+    a,b= float(a),float(b)
+    I1 = I2 = 0.0
+    try:
+        I1 = IntegrateQuadrature(f, a, b, n1)
+        I2 = IntegrateQuadrature(f, a, b, n2)
+    except RuntimeError:
+        raise RuntimeError, 'n2 is too large'
+    m = a+(b-a)/2.0
+    if m <= a or m >= b:
+        print 'warning - possible precision problem'
+        return I2
+    if abs(I1-I2)<PRECISION: return I2
+    return IntegrateAdaptativeQuadrature(a, m, n1, n2) + \
+           IntegrateAdaptativeQuadrature(m, b, n1, n2)
+
+
+
+### multi dimensional function utilities TO DO FROM NOW ON
+
+def Jacobian(f, x):
+    """Returns the first derivative of a vector function of several variables at 
+        point x.
+
+    Parameters
+    ----------
+    f : function
+        Function taking a column matrix x
+    x : Single column matrix, matrix(n,1)
+        Point at which to find derivative of f at.
+
+    Returns
+    -------
+    J : matrix(rows(x), 1)
+        The derivative of f at point x.
+
+    Example
+    --------
+    >>> def f(x):
+    ...     y = matrix(rows(x),1)
+    ...     y[0][0] = x[0][0]*x[1][0]*x[2][0]+8
+    ...     y[1][0] = x[1][0]-x[0][0]-3.0*x[2][0]
+    ...     y[2][0] = x[0][0]*x[2][0]+x[1][0]
+    ...     return y
+    >>> x = matrix(3,1)
+    >>> x[0][0] = 1
+    >>> x[1][0] = -1
+    >>> x[2][0] = 2
+    >>> pprint(Jacobian(f, x))
+     [
+      [ -2.000e+00, 2.000e+00, -1.000e+00, ],
+      [ -1.000e+00, 1.000e+00, -3.000e+00, ],
+      [ 2.000e+00, 1.000e+00, 1.000e+00, ],
+     ]
+    """
+
+    h = EPSILON
+    n = rows(x)
+    J = matrix(n,n)
+    A = matrix(n,1)
+    #x_plus_h = x(n,1)
+    x_plus_h = deepcopy(x)
+    for j in range(n):
+        if j > 0: x_plus_h[j-1][0] -= h
+        x_plus_h[j][0] += h
+        A = sub(f(x_plus_h), f(x))
+        for i in range(n):
+            J[i][j] = A[i][0]/h
+    return J
+
+
+def fix(h):
+    """This scales the matrix down if necessary.
+        If any values in the column matrix h are larger than 10.0,
+        fix will multiply every value by 10.0/n where n is the largest
+        absolute value in h. 
+
+    Parameters
+    ----------
+    h : matrix(n,1)
+        This matrix will be scaled down if necessary
+
+    Returns
+    -------
+    Nothing. h is modified as a side effect.
+
+    Example
+    --------
+    >>> h = matrix(3,1)
+    >>> h[0][0] = 3
+    >>> h[1][0] = -4
+    >>> h[2][0] = 11
+    >>> fix(h)
+    >>> pprint(h)
+     [
+      [ 2.727e+00, ],
+      [ -3.636e+00, ],
+      [ 1.000e+01, ],
+     ]
+    """
+    max_jump = 10.0
+    m = 0.0
+    for i in range(rows(h)):
+        if abs(h[i][0]) > m: m = float(abs(h[i][0]))
+    if m > max_jump:
+        for i in range(rows(h)):
+            h[i][0] *= max_jump/m
+
+
+def SolveNewtonForMultiDimFunc(f, x):
+    """Computes the root of a multidimensional function f near point x.
+
+    Parameters
+    ----------
+    f : function
+        f should take a column matrix and return a column matrix
+    x : matrix(N,1)
+        A point to start searching for the root of f
+
+    Returns
+    -------
+    x : matrix(N,1)
+        A root of f such that f(x) returns 0's.
+
+    Example
+    --------
+    >>> def f(x):
+    ...     y = matrix(rows(x),1)
+    ...     y[0][0] = x[0][0]*x[1][0]*x[2][0]+8
+    ...     y[1][0] = x[1][0]-x[0][0]-3.0*x[2][0]
+    ...     y[2][0] = x[0][0]*x[2][0]+x[1][0]
+    ...     return y
+    >>> x = matrix(3,1)
+    >>> x[0][0] = 1
+    >>> x[1][0] = -1
+    >>> x[2][0] = 2
+    >>> pprint(x)
+     [
+      [ 1.000e+00, ],
+      [ -1.000e+00, ],
+      [ 2.000e+00, ],
+     ]
+    >>> x = SolveNewtonForMultiDimFunc(f, x)
+    >>> pprint(x)
+     [
+      [ 4.652e+00, ],
+      [ 2.828e+00, ],
+      [ -6.080e-01, ],
+     ]
+    >>> pprint(f(x)) #@TODO this is incorrent. first value should be 3.38271e-16 due to precision problems in f(x) between c++/python
+     [
+      [ 0.000e+00, ],
+      [ 2.220e-16, ],
+      [ -4.441e-16, ],
+     ]
+    
+    """
+    x_old = matrix(rows(x), 1)
+    J = matrix(rows(x), rows(x))
+    h = matrix(rows(x), 1)
+    for k in range(100):
+        J = Jacobian(f, x)
+        #pprint(x)
+        #print 'f(x) round ', k, ' is ', f(x)
+        #print 'jacobian round ', k, ' is ', Jacobian(f,x)
+        if norm_1(J) < PRECISION:
+            raise RuntimeError, 'unstable solution'
+        x_old = deepcopy(x)
+        h = multiply(inverse(J), f(x))
+        fix(h)
+        x = sub(x, h)
+        #print 'x round ', k, ' is ', x
+        #print 'f(x) round ', k, ' is ', f(x)
+        if norm_1(sub(x,x_old)) < PRECISION: return x
+    raise RuntimeError, 'no convergence'
+
+
+### FunctionOfMultipleVariables stuff
+"""
+	double f(double alpha) {
+		Matrix x=x_sd+alpha*s_sd;
+		return f(x);
+	}
+	Matrix gradient(const Matrix& x) {
+		double h=EPSILON;
+		int n=x.nrows;
+		Matrix v(n);
+    		Matrix x_plus_h=x; 
+	        for(int j=0; j<n; j++) {
+	            x_plus_h(j)+=h;
+		    v(j)=(f(x_plus_h)-f(x))/h;
+		    x_plus_h(j)-=h;
+    		}		
+		return v;
+	}
+	Matrix Hessian(const Matrix& x) {
+		double h=EPSILON;
+		int n=x.nrows;
+                Matrix H(n,n);
+		Matrix x_plus_hi=x; 
+		Matrix x_plus_hi_minus_hj=x;
+		Matrix x_minus_hj=x; 
+		double tmp;
+                for(int i=0; i<n; i++) {
+      			x_plus_hi(i)+=h;	
+      			x_plus_hi_minus_hj(i)+=h;
+			for(int j=0; j<n; j++) {
+	      			x_plus_hi_minus_hj(j)-=h;
+				x_minus_hj(j)-=h;
+				H(i,j)=(f(x_plus_hi)-f(x_plus_hi_minus_hj)-f(x)+f(x_minus_hj))/(h*h);
+	      			x_plus_hi_minus_hj(j)+=h;
+				x_minus_hj(j)+=h;				
+			}
+      			x_plus_hi(i)-=h;	
+      			x_plus_hi_minus_hj(i)-=h;
+		   }
+		return H;
+	}
+	Matrix OptimizeSteepestDescent(const Matrix& x0) {
+		x_sd=x0;
+		Matrix x_old=x_sd;
+		double alpha;
+		for(int k=0; k<100; k++) {				
+			s_sd=gradient(x_sd);			
+			try {
+				alpha=OptimizeSecant(0.0);
+			} catch(Exception e) {
+			  cout << 'oops, not sure if converges!\n';
+				break;
+			}
+			x_old=x_sd;
+			x_sd=x_sd+alpha*s_sd;
+			if(norm_2(x_sd-x_old)<PRECISION) break;
+		}
+		return x_sd;
+	}
+
+  Matrix OptimizeNewton(Matrix x) {
+    Matrix x_old;
+    Matrix g;
+    Matrix H;
+    for(int k=0; k<100; k++) {
+      cout << x << endl;
+      g=gradient(x);
+      H=Hessian(x);
+      if(norm_1(H)<PRECISION) throw Exception('Instability');
+      x_old=x;
+      x=x-inverse(H)*g;	
+      if(norm_1(x-x_old)<PRECISION) return x;
+    }
+    throw Exception('NoCovergence');
+  }
+  Matrix OptimizeNewtonWithLinearContrants(Matrix x, Matrix B, Matrix d) {
+	// contraint is Bx-d=0
+    Matrix x_old;
+    Matrix b;
+    Matrix A;
+    for(int k=0; k<100; k++) {
+      cout << x << endl;
+      b=gradient(x);
+      A=Hessian(x);
+      if(norm_1(A)<PRECISION) throw Exception('Instability');
+      x=OptimizerForQuadraticFunctionWithLinearConstraints(A,b,B,d);
+      if(norm_1(x-x_old)<PRECISION) return x;
+    }
+    throw Exception('NoCovergence');
+  }
+"""
+
+
 def test_all():
+    test_multiply()
     test_inverse()
     test_Cholesky()
+    test_Markoviz()
     test_fit()
     test_AR1filter()
     test_Jacobi()
@@ -832,6 +1990,4 @@ def test_all():
 
 if __name__ == '__main__':
     import doctest
-    test_all()
     doctest.testmod()
-
