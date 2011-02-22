@@ -610,7 +610,7 @@ def Markoviz(mu, A, r_bar):
     >>> ret = Markoviz(mu, A, r_bar)
     >>> for m in range(len(ret)): ret[m][0] = round(ret[m][0], 7)
     >>> ret
-    [[0.5566343], [0.2750809], [0.1682848]]
+    [[0.55663430000000003], [0.27508090000000002], [0.16828480000000001]]
     """
     x = matrix(rows(A), 1)
     for r in range(rows(mu)): mu[r][0] -= r_bar
@@ -984,9 +984,19 @@ def D2(f,h=EPSILON):
 ############## Solvers and Optimizers ############        
 
 def SolveFixedPoint(f, x_guess):
+
+
+ 
+#I think x=f(x) is already the intesection point between y=f(x) and line y=x
+#And I think it should be "find a point where g(x)=f(x)+x intersects y=x.
+
+
+
+
+ 
     """Find a point where x = f(x) intersects the line y = x.
 
-    Parameters
+    Parameters                
     ----------
     f : function
         Function taking one parameter x
@@ -1007,7 +1017,9 @@ def SolveFixedPoint(f, x_guess):
 
     """ 
 
-    def g(x): return f(x) + x
+    def g(x): return f(x) + x   #_______Because|g'(x)|<1 when x is between root                                # and x_guess, then this way to construct g(x)
+                               #might not be able to success for every f(x)
+                               #we need a check condition to test if it fails.
 
     x = x_guess
     x_old = x + 2.0 * PRECISION
@@ -1048,7 +1060,6 @@ def SolveBisection(f, a, b):
 
     fa = f(a)
     fb = f(b)
-    x = fx = 0.0
     if fa == 0: return a
     if fb == 0: return b
     if fa*fb > 0:
@@ -1098,7 +1109,6 @@ def OptimizeBisection(f, a, b):
 
     f1a = D(f)(a)
     f1b = D(f)(b)
-    x = fx = 0.0
     if f1a == 0: return a
     if f1b == 0: return b
     if f1a*f1b > 0:
@@ -1148,8 +1158,6 @@ def SolveNewton(f, x):
     '24.738633'
     """
     x=float(x)
-    x_old = x+PRECISION
-    f1x = 0.0
     for k in range(20):
         #print x
         f1x = D(f)(x)
@@ -1184,8 +1192,6 @@ def OptimizeNewton(f, x):
     '0.561552'
     """
     x=float(x)
-    x_old = x + PRECISION
-    f2x = 0.0
     for k in range(20):
         #print x
         f2x = D2(f)(x)
@@ -1227,12 +1233,12 @@ def SolveNewtonBisection(f, a, b):
     a,b=float(a),float(b)
     fa = f(a)
     fb = f(b)
-    x = fx = 0.0
+    x = fx = 0.0                 # should be x=0.0
     if fa == 0: return a
     if fb == 0: return b
     if fa*fb > 0:
         raise RuntimeError, 'f(a) and f(b) must have opposite sign'
-    f1x = 0.0
+    f1x = D(f)(x)
     for k in range(20):
         #print x
         if abs(f1x) > PRECISION:
@@ -1285,7 +1291,7 @@ def OptimizeNewtonBisection(f, a, b):
     if f1b == 0: return b
     if f1a * f1b > 0:
         raise RuntimeError, 'D(f)(a) and D(f)(b) must have opposite sign'
-    x = (a+b)/2
+    x = (a+b)/2            #why not set x=0.0 as SolveNewtonBisection(f,a,b)does
     f1x = D(f)(x)
     f2x = D2(f)(x)
     for k in range(20):
@@ -1331,8 +1337,6 @@ def SolveSecant(f, x):
     '0.865474'
     """
     x=float(x)
-    x_old = 0.0
-    fx = f1x = f_old = 0.0
     x_old = x - 0.0001
     f_old = f(x_old)
 
@@ -1343,6 +1347,7 @@ def SolveSecant(f, x):
         if abs(f1x) < PRECISION:
             raise RuntimeError, 'instability'
         f_old = fx
+
         x_old = x
         x = x - fx/f1x
         if k > 1 and abs(x-x_old)<PRECISION: return x
