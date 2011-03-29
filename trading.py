@@ -3,11 +3,7 @@ import math
 # import least squares fitting function
 from numeric import fit, QUADRATIC
 # import class to download Yahoo financial data
-from yahoo import Stock
-
-# we create a function to download adjusted closing prices from Yahoo
-def download(symbol='aapl',days=360):
-    return [d.adjusted_close for d in Stock(symbol).historical()[-days:]]
+from yahoo import download
 
 class Trader:
     # we implement a forecast model
@@ -51,7 +47,7 @@ class Trader:
         return deposit+shares*data[-1]
 
 # now we are ready to download the data: one year of closing princes for Apple
-data = download('aapl',360)
+data = download('aapl',360,'adjusted_close')
 # we run our strategy assuming we invested $1000 one year ago
 # and we compute the net worth at the end of term
 print Trader().simulate(data,deposit=1000.0)

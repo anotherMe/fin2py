@@ -310,6 +310,11 @@ class Stock:
                                   log_return=log_return))
         return series
 
+
+# we create a function to download adjusted closing prices from Yahoo                                          
+def download(symbol='aapl',days=360, what='adjusted_close'):
+    return [d[what] for d in Stock(symbol).historical()[-days:]]
+
 def testStock():
     """Function to test one stock"""
     import sys
