@@ -1,56 +1,58 @@
-from numeric import *
+# import mathematical module
 import math
+# import least squares fitting function
+from numeric import fit, QUADRATIC
+# import class to download Yahoo financial data
+from yahoo import Stock
 
-def read(stock='mmm',days=360):
-    lines = open('%s.csv' % stock,'r').read().split('\n')
-    prices = [float(line) for line in lines if line.strip()]
-    if len(prices)<days: raise RuntimeError, "Not enough data"
-    return prices[-days:]
+# we create a function to download adjusted closing prices from Yahoo
+def download(symbol='aapl',days=360):
+    return [d.adjusted_close for d in Stock(symbol).historical()[-days:]]
 
-def model(last_period): # last_period = [3,5,2,7,8,9,5]
-    n = len(last_period)
-    t = [-i-1 for i in range(n)]  # t = [-1,-2,-3,-4,-5,-6,-7]
-    y = [[last_period[n-i-1]] for i in range(n)] # 
-    # begin of model dependency
-    A = matrix(n,3) 
-    for i in range(n):
-        A[i][0] = 1.0
-        A[i][1] = t[i]
-        A[i][2] = t[i]**2
-    # end of model dependency
-    x = multiply(inverse(multiply(transpose(A),A)),multiply(transpose(A),y))
-    t_today = 0
-    price_today = x[0][0]
-    return price_today
+# we implement a forecast model
+def model(window):
+    n = len(window)
+    # we fit last few days quadratically
+    a,chi2,ff=fit(QUADRATIC,range(n),window)
+    # and we extrapolate tomorrow's price
+    price_tomorrow = ff(n)  
+    return price_tomorrow
 
-def strategy(last_period,alpha=0.01):
-    yesterday_close = last_period[-1]
-    price_today = model(last_period)
-    if price_today>yesterday_close*(1.0+alpha): return 'buy'
-    elif price_today<=yesterday_close*(1.0-alpha): return 'sell'
+# we implement a trading strategy based on our model forecast
+def sample_strategy(window):
+    price_today = window[-1]
+    price_tomorrow = model(window)
+    if price_tomorrow>price_today:
+        return 'buy'
+    else:
+        return 'sell'
 
-def simulate(historical,amount=1000.0,shares=0.0,days=7,
-             daily_rate=0.03/360,alpha=0.01):
-    for t in range(days,len(historical)):
-        last_period =  historical[t-days:t]
-        suggestion = strategy(last_period,alpha)
-        if amount and suggestion=='buy':
-            shares += amount/last_period[-1]
-            amount = 0
-        if shares and suggestion=='sell':
-            amount += shares*last_period[-1]
-            shares = 0
-        amount*=math.exp(daily_rate)
-        # print t, suggestion, amount, shares, amount+shares*last_period[-1]
-    return amount+shares*historical[-1]
+# we run our strategy
+def simulate(data,deposit=1000.0,shares=0.0,days=7,daily_rate=0.03/360,
+             strategy=sample_strategy):
+    # we make a sliding window
+    for t in range(days,len(data)):
+        window =  data[t-days:t]
+        today_close = window[-1]
+        suggestion = strategy(window)
+        # and we buy or sell based on our strategy
+        if deposit>0 and suggestion=='buy':
+            # we keep track of finances
+            shares += int(deposit/today_close)
+            deposit -= shares*today_close
+        elif shares>0 and suggestion=='sell':
+            deposit += shares*today_close
+            shares = 0.0
+        # we assume money in the bank also gains an interest
+        deposit*=math.exp(daily_rate)
+        print t, suggestion, deposit, shares, deposit+shares*window[-1]        
+    # we return the net worth
+    return deposit+shares*data[-1]
 
-historical = read('mmm',360)
-def f(x):
-    return simulate(historical,days=7,alpha=x)
-
-#for i in range(1,10):
-#    x=0.01*i
-#    print x,f(x)
-
-x = SolveBisection(D(f),0.012,0.02)
-print x, f(x)
+# now we are ready to download the data: one year of closing princes for Apple
+data = download('aapl',360)
+# we run our strategy assuming we invested $1000 one year ago
+# and we compute the net worth at the end of term
+print simulate(data,deposit=1000.0)
+# now we compare with the net worth if we invested the money at a fixed 3% annual interest
+print 1000.0*math.exp(0.03)

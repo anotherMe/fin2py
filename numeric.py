@@ -610,7 +610,7 @@ def Markoviz(mu, A, r_bar):
     >>> ret = Markoviz(mu, A, r_bar)
     >>> for m in range(len(ret)): ret[m][0] = round(ret[m][0], 7)
     >>> ret
-    [[0.55663430000000003], [0.27508090000000002], [0.16828480000000001]]
+    [[0.5566343], [0.2750809], [0.1682848]]
     """
     x = matrix(rows(A), 1)
     for r in range(rows(mu)): mu[r][0] -= r_bar
@@ -783,9 +783,9 @@ def fit(f,x,y,dy=None):
     for i in range(rows(A)):
         w=1.0
         if dy: w=1.0/sqrt(dy[i])
-        B[i][0]=w*y[i]
+        B[i][0]=w*float(y[i])
         for j in range(cols(A)):
-            A[i][j]=w*f[j](x[i])
+            A[i][j]=w*f[j](float(x[i]))
             pass
         pass
     C=multiply(inverse(multiply(transpose(A),A)),multiply(transpose(A),B))
@@ -1889,98 +1889,160 @@ def SolveNewtonForMultiDimFunc(f, x):
         if norm_1(sub(x,x_old)) < PRECISION: return x
     raise RuntimeError, 'no convergence'
 
-
 ### FunctionOfMultipleVariables stuff
-"""
-	double f(double alpha) {
-		Matrix x=x_sd+alpha*s_sd;
-		return f(x);
-	}
-	Matrix gradient(const Matrix& x) {
-		double h=EPSILON;
-		int n=x.nrows;
-		Matrix v(n);
-    		Matrix x_plus_h=x; 
-	        for(int j=0; j<n; j++) {
-	            x_plus_h(j)+=h;
-		    v(j)=(f(x_plus_h)-f(x))/h;
-		    x_plus_h(j)-=h;
-    		}		
-		return v;
-	}
-	Matrix Hessian(const Matrix& x) {
-		double h=EPSILON;
-		int n=x.nrows;
-                Matrix H(n,n);
-		Matrix x_plus_hi=x; 
-		Matrix x_plus_hi_minus_hj=x;
-		Matrix x_minus_hj=x; 
-		double tmp;
-                for(int i=0; i<n; i++) {
-      			x_plus_hi(i)+=h;	
-      			x_plus_hi_minus_hj(i)+=h;
-			for(int j=0; j<n; j++) {
-	      			x_plus_hi_minus_hj(j)-=h;
-				x_minus_hj(j)-=h;
-				H(i,j)=(f(x_plus_hi)-f(x_plus_hi_minus_hj)-f(x)+f(x_minus_hj))/(h*h);
-	      			x_plus_hi_minus_hj(j)+=h;
-				x_minus_hj(j)+=h;				
-			}
-      			x_plus_hi(i)-=h;	
-      			x_plus_hi_minus_hj(i)-=h;
-		   }
-		return H;
-	}
-	Matrix OptimizeSteepestDescent(const Matrix& x0) {
-		x_sd=x0;
-		Matrix x_old=x_sd;
-		double alpha;
-		for(int k=0; k<100; k++) {				
-			s_sd=gradient(x_sd);			
-			try {
-				alpha=OptimizeSecant(0.0);
-			} catch(Exception e) {
-			  cout << 'oops, not sure if converges!\n';
-				break;
-			}
-			x_old=x_sd;
-			x_sd=x_sd+alpha*s_sd;
-			if(norm_2(x_sd-x_old)<PRECISION) break;
-		}
-		return x_sd;
-	}
 
-  Matrix OptimizeNewton(Matrix x) {
-    Matrix x_old;
-    Matrix g;
-    Matrix H;
-    for(int k=0; k<100; k++) {
-      cout << x << endl;
-      g=gradient(x);
-      H=Hessian(x);
-      if(norm_1(H)<PRECISION) throw Exception('Instability');
-      x_old=x;
-      x=x-inverse(H)*g;	
-      if(norm_1(x-x_old)<PRECISION) return x;
-    }
-    throw Exception('NoCovergence');
-  }
-  Matrix OptimizeNewtonWithLinearContrants(Matrix x, Matrix B, Matrix d) {
-	// contraint is Bx-d=0
-    Matrix x_old;
-    Matrix b;
-    Matrix A;
-    for(int k=0; k<100; k++) {
-      cout << x << endl;
-      b=gradient(x);
-      A=Hessian(x);
-      if(norm_1(A)<PRECISION) throw Exception('Instability');
-      x=OptimizerForQuadraticFunctionWithLinearConstraints(A,b,B,d);
-      if(norm_1(x-x_old)<PRECISION) return x;
-    }
-    throw Exception('NoCovergence');
-  }
-"""
+def gradient(f, x):
+    """Returns a vector with a magnitude equal to the maximum rate of change of f near the point x. The vector is pointed in the direction of that maximum rate of change. Literally the derivative of a vector function that returns a vector at point x.
+
+    Parameters
+    ----------
+    f : function
+        f should take a column matrix and return a double
+    x : matrix(N,1)
+        A point to calculate the direction of f
+
+    Returns
+    -------
+    x : matrix(N,1)
+        See above
+
+    Example
+    --------
+    >>> # see page 264 in Scientific Computing : An Introductory Survey, Second Edition by Michael T. Heath for full example
+    >>> def f(x):
+    ...     return 2*x[0][0]**3 + 3*x[0][0]**2 + 12*x[0][0]*x[1][0] + 3*x[1][0]**2 - 6*x[1][0] + 6
+    >>> x = matrix(2,1)
+    >>> x[0][0] = 3
+    >>> x[1][0] = -2
+    >>> pprint(gradient(f, x))
+     [
+      [ 4.802e+01, ],
+      [ 1.800e+01, ],
+     ]
+    >>> # for this calculation, the gradient should be as follows:
+    >>> # vector matrix, first value: 6*x[0][0]**2 + 6*x[0][0] + 12*x[1][0]
+    >>> # second value: 12*x[0][0] + 6*x[1][0] - 6
+    
+    """
+
+    h = EPSILON
+    n = rows(x)
+    v = matrix(n, 1)
+    x_plus_h = deepcopy(x)
+    for j in range(n):
+        x_plus_h[j][0] += h
+        v[j][0] = (f(x_plus_h) - f(x))/h
+        x_plus_h[j][0] -= h
+    return v
+
+
+def hessian(f, x):
+    """Computes the second-order partial derivatives of a multivariable function f at point x. Basically the Jacobian of the gradient. You can use this to check if the point at x is close to a minimum, a maximum, a saddle point or a pathological situation. (See page 263 in the book.) Since the hessian is the second order derivative of f, if its "definitive" is positive, then, x is at the bottom of a curve; negative, at the top of a curve; indefinite, f is at a saddle point.
+    http://en.wikipedia.org/wiki/Positive-definite_matrix
+
+    Parameters
+    ----------
+    f : function
+        f should take a column matrix and return a double
+    x : matrix(N,1)
+        point at which to compute the second derivative of f
+
+    Returns
+    -------
+    x : matrix(N,N)
+        a matrix describing the second derivative of f.
+
+    Example
+    --------
+    >>> # see page 264 in Scientific Computing : An Introductory Survey, Second Edition by Michael T. Heath for full example
+    >>> def f(x):
+    ...     return 2*x[0][0]**3 + 3*x[0][0]**2 + 12*x[0][0]*x[1][0] + 3*x[1][0]**2 - 6*x[1][0] + 6
+    >>> x = matrix(2,1)
+    >>> x[0][0] = 1
+    >>> x[1][0] = -3
+    >>> pprint(hessian(f,x))
+     [
+      [ 1.800e+01, 1.200e+01, ],
+      [ 1.200e+01, 6.000e+00, ],
+     ]
+
+    """
+
+    h = EPSILON
+    n = rows(x)
+    H = matrix(n,n)
+    x_plus_hi = deepcopy(x)
+    x_plus_hi_minus_hj = deepcopy(x)
+    x_minus_hj = deepcopy(x)
+    tmp = 0.0
+    for i in range(n):
+        x_plus_hi[i][0] += h
+        x_plus_hi_minus_hj[i][0] += h
+        for j in range(n):
+            x_plus_hi_minus_hj[j][0] -= h
+            x_minus_hj[j][0] -= h
+            H[i][j] = (f(x_plus_hi)-f(x_plus_hi_minus_hj)-f(x)+f(x_minus_hj))/(h*h)
+            x_plus_hi_minus_hj[j][0] += h
+            x_minus_hj[j][0] += h
+
+        x_plus_hi[i][0] -= h
+        x_plus_hi_minus_hj[i][0] -= h
+    return H
+
+
+def OptimizeNewtonMultipleVariables(f, x):
+    """Computes the maximum of the second derivative of the multivariable function f near point x. Essentially finds the root of x using the second derivative.
+
+    Parameters
+    ----------
+    f : function
+        f should take a column matrix and return a double
+    x : matrix(N,1)
+        A point to start searching for the root of f
+
+    Returns
+    -------
+    x : matrix(N,1)
+        A minimum of the 2nd derivative of f
+
+    Example
+    --------
+    >>> # see page 264 in Scientific Computing : An Introductory Survey, Second Edition by Michael T. Heath for full example
+    >>> def f(x):
+    ...     return 2*x[0][0]**3 + 3*x[0][0]**2 + 12*x[0][0]*x[1][0] + 3*x[1][0]**2 - 6*x[1][0] + 6
+    >>> # obtain critical points of the gradient of f using methods from Chp 5 in the same book
+    >>> x = matrix(2,1)
+    >>> x[1][0] = -3
+    >>> x[0][0] = 1
+    >>> y = OptimizeNewtonMultipleVariables(f, x)
+     [
+      [ 1.000e+00, ],
+      [ -3.000e+00, ],
+     ]
+     [
+      [ 1.001e+00, ],
+      [ -1.002e+00, ],
+     ]
+     [
+      [ 1.001e+00, ],
+      [ -1.002e+00, ],
+     ]
+    >>> pprint(y)
+     [
+      [ 1.001e+00, ],
+      [ -1.002e+00, ],
+     ]
+    """
+    x_old = None
+    for k in range(100):
+        pprint(x)
+        g = gradient(f, x)
+        h = hessian(f, x)
+        if norm_1(h) < PRECISION: raise Exception('Instability')
+        x_old = deepcopy(x)
+        x = sub(x, multiply(inverse(h), g))
+        if norm_1(sub(x, x_old)) < PRECISION: return x
+    raise Exception('NoConvergence')
 
 
 def test_all():
@@ -1992,6 +2054,7 @@ def test_all():
     test_AR1filter()
     test_Jacobi()
     test_truncate_eigenvalues_cov()
+
 
 if __name__ == '__main__':
     import doctest
