@@ -15,6 +15,7 @@ finance.py
              
 """
 
+from storage import *
 from yahoo import *
 from mc import *
 from math import *

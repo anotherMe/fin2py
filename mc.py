@@ -17,8 +17,8 @@
 
 """
 
+from storage import Storage
 from math import sqrt
-from yahoo import Storage
 import random
 
 __all__=['bootstrap','confidence_intervals','MCSimulator']
