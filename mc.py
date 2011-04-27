@@ -172,19 +172,16 @@ class MCSimulator:
             self.results.append(y)
             #Maintain the average and variance of results
             mu = (mu*i+y)/(i+1) 
-            var = (var*i+(y-mu)**2)/(i+1)
+            var = (var*i+y**2)/(i+1)
             #After simulating at least ten times, begin
             #    checking the precision for when to stop
             if i>10:
-                sigma= sqrt(var)
+                sigma= sqrt(var-mu*mu)
                 dmu=sigma/sqrt(i)
-                if abs(dmu)<absolute_precision:
-                    break
-                if abs(dmu)<abs(mu)*relative_precision:
-                    break
+                if abs(dmu)<absolute_precision: break
+                if abs(dmu)<abs(mu)*relative_precision: break
             i=i+1			
-            if i>=max_iterations:
-                break
+            if i>=max_iterations: break
         confidence_intervals(mu,sigma)
             #bootstrap the results to get a non-gaussian
             #    average and standard error
